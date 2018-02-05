@@ -1,0 +1,15 @@
+<!--index.wxml-->
+<view class="container">
+  <view>
+    <view class="moto-item">
+      <image class="moto-item-photo" src="{{userInfo.avatarUrl}}" background-size="cover"></image>
+      <view class="moto-item-content">
+        <text class="moto-item-name">本田E影110</text>
+        <text class='moto-item-desc'>总里程：1111，总耗油：5555，平均油耗：5555</text>
+      </view>
+    </view>
+  </view>
+  <view>
+    <button type="primary" class="btn-add-moto" bindtap='handleBtnAddTap'>+ 添加车辆</button>
+  </view>
+</view>

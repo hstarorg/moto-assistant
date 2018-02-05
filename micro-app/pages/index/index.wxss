@@ -1,0 +1,36 @@
+/**index.wxss**/
+
+.moto-item {
+  border: 1px solid #eee;
+  margin-bottom: 15rpx;
+  padding: 10rpx;
+  display: flex;
+  justify-content: space-between;
+}
+
+.moto-item-photo {
+  width: 128rpx;
+  height: 128rpx;
+  min-width: 128rpx;
+  margin-right: 10rpx;
+  border-radius: 50%;
+  flex: 0;
+}
+
+.moto-item-content {
+  flex: 100;
+}
+
+.moto-item-name {
+  display: block;
+  line-height: 64rpx;
+}
+
+.moto-item-desc {
+  font-size: 12px;
+  line-height: 64rpx;
+}
+
+.btn-add-moto {
+  width: 690rpx;
+}
