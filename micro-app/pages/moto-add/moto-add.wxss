@@ -9,7 +9,7 @@
   height: 256rpx;
   border: 1px solid #ccc;
   margin: 0 auto;
-  margin-bottom: 100rpx;
+  margin-bottom: 50rpx;
 }
 
 .section {
@@ -19,12 +19,13 @@
 .form-label {
   width: 160rpx;
   font-size: 28rpx;
-  line-height: 52rpx;
+  line-height: 84rpx;
 }
 
 input[name=input], .date-picker {
   font-size: 28rpx;
   flex: 1;
+  height: 84rpx;
 }
 
 .btn-area {
@@ -33,4 +34,8 @@ input[name=input], .date-picker {
 
 .btn-area button {
   font-size: 32rpx;
+}
+
+.form-item {
+  border-bottom: 1px solid #eee;
 }

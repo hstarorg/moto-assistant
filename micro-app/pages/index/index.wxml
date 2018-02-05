@@ -1,6 +1,6 @@
 <!--index.wxml-->
 <view class="container">
-  <view>
+  <view class="content-container">
     <view class="moto-item">
       <image class="moto-item-photo" src="{{userInfo.avatarUrl}}" background-size="cover"></image>
       <view class="moto-item-content">

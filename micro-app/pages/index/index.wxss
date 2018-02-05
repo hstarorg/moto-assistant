@@ -1,5 +1,9 @@
 /**index.wxss**/
 
+.content-container {
+  width: 720rpx;
+}
+
 .moto-item {
   border: 1px solid #eee;
   margin-bottom: 15rpx;
@@ -32,6 +36,6 @@
 }
 
 .btn-add-moto {
-  width: 690rpx;
+  width: 720rpx;
   font-size: 32rpx;
 }

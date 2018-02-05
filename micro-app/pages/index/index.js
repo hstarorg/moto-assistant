@@ -4,7 +4,6 @@ const app = getApp()
 
 Page({
   data: {
-    motto: 'My god',
     userInfo: {},
     hasUserInfo: false,
     canIUse: wx.canIUse('button.open-type.getUserInfo')
@@ -19,7 +18,8 @@ Page({
       // 在没有 open-type=getUserInfo 版本的兼容处理
       wx.getUserInfo({
         success: res => {
-          app.globalData.userInfo = res.userInfo
+          app.globalData.userInfo = res.userInfo;
+          console.log(res, res.userInfo);
           this.setData({
             userInfo: res.userInfo,
             hasUserInfo: true

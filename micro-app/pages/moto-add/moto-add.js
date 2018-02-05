@@ -1,6 +1,7 @@
 // pages/moto-add/moto-add.js
-Page({
+const { formatTime } = require('../../utils/util');
 
+Page({
   /**
    * 页面的初始数据
    */
@@ -10,7 +11,8 @@ Page({
       motoName: '',
       motoBuyDate: '',
       motoLicensePlate: ''
-    }
+    },
+    dateNowStr: formatTime(new Date(), 'date')
   },
 
   /**

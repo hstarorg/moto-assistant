@@ -3,17 +3,17 @@
     <view class="section">
       <image class='moto-photo' src='{{motoInfo.motoPhotoUrl}}' bindtap="handleUpdatePhoto"></image>
     </view>
-    <view class="section">
+    <view class="section form-item">
       <text class="form-label">车辆名称：</text>
       <input name="input" placeholder='请输入车辆名称' value="{{motoInfo.motoName}}" bindinput="updateMotoName" />
     </view>
-    <view class="section">
+    <view class="section form-item">
       <text class="form-label">购车时间：</text>
-      <picker class="date-picker" mode="date" value="{{date}}" bindchange="bindDateChange">
+      <picker class="date-picker" mode="date" value="{{date}}" end="{{dateNowStr}}" bindchange="bindDateChange">
         <input name="input" readonly placeholder="请输入购车时间" value="{{motoInfo.motoBuyDate}}" />
       </picker>
     </view>
-    <view class="section">
+    <view class="section form-item">
       <text class="form-label">车牌号：</text>
       <input name="input" placeholder="请输入车牌号" value="{{motoInfo.motoLicensePlate}}" bindinput="updateMotoLicensePlate" />
     </view>
