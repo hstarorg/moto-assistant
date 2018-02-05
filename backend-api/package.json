@@ -1,0 +1,19 @@
+{
+  "name": "moto-assistant-api",
+  "version": "0.0.1",
+  "description": "The backend-api for moto assistant tool",
+  "main": "index.js",
+  "scripts": {
+    "dev": "fast-koa dev",
+    "build": "fast-koa build",
+    "test": "test"
+  },
+  "author": "Jay.M.Hu",
+  "license": "MIT",
+  "dependencies": {
+    "fast-koa": "0.0.1"
+  },
+  "devDependencies": {
+    "fast-koa-cli": "0.0.1"
+  }
+}
