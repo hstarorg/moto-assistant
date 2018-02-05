@@ -11,6 +11,7 @@
   "author": "Jay.M.Hu",
   "license": "MIT",
   "dependencies": {
+    "axios": "^0.17.1",
     "fast-koa": "0.0.1"
   },
   "devDependencies": {
