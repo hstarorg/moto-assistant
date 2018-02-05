@@ -33,4 +33,5 @@
 
 .btn-add-moto {
   width: 690rpx;
+  font-size: 32rpx;
 }

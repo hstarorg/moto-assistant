@@ -10,6 +10,6 @@
     </view>
   </view>
   <view>
-    <button type="primary" class="btn-add-moto" bindtap='handleBtnAddTap'>+ 添加车辆</button>
+    <button type="primary" class="btn-add-moto" bindtap='handleBtnAddTap'>添加车辆</button>
   </view>
 </view>

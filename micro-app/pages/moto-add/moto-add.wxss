@@ -1,1 +1,36 @@
 /* pages/moto-add/moto-add.wxss */
+
+.form-moto {
+  width: 690rpx;
+}
+
+.moto-photo {
+  width: 256rpx;
+  height: 256rpx;
+  border: 1px solid #ccc;
+  margin: 0 auto;
+  margin-bottom: 100rpx;
+}
+
+.section {
+  display: flex;
+}
+
+.form-label {
+  width: 160rpx;
+  font-size: 28rpx;
+  line-height: 52rpx;
+}
+
+input[name=input], .date-picker {
+  font-size: 28rpx;
+  flex: 1;
+}
+
+.btn-area {
+  margin-top: 15rpx;
+}
+
+.btn-area button {
+  font-size: 32rpx;
+}
