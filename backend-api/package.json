@@ -13,6 +13,7 @@
   "dependencies": {
     "axios": "^0.17.1",
     "fast-koa": "0.0.1",
+    "mysql": "^2.15.0",
     "uuid": "^3.2.1"
   },
   "devDependencies": {
