@@ -2,7 +2,6 @@ const { validator } = require('fast-koa');
 const { AccountSchemas } = require('./schemas');
 const { wxHelper } = require('../common');
 
-
 const processUserToken = async ctx => {
   const data = ctx.request.body;
   await validator.validate(data, AccountSchemas.TOKEN_SCHEMA);
@@ -19,6 +18,12 @@ const processUserToken = async ctx => {
   ctx.body = userInfo;
 };
 
+const checkUserStatus = () => {};
+
+const setUserInfo = () => {};
+
 module.exports = {
-  processUserToken
+  processUserToken,
+  checkUserStatus,
+  setUserInfo
 };

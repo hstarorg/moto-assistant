@@ -1,12 +1,16 @@
 const path = require('path');
 const fastKoa = require('fast-koa');
 const config = require('./config');
+const { accountBiz } = require('./bizs');
 
 fastKoa.initApp({
   routesPath: config.routesPath,
   enableHelmet: true,
   enableLogger: true,
-  enableResponseTime: true
+  enableResponseTime: true,
+  onRoutesLoading(app) {
+    app.use(accountBiz.setUserInfo);
+  }
 });
 
 fastKoa
