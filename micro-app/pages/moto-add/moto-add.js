@@ -1,5 +1,8 @@
 // pages/moto-add/moto-add.js
-const { formatTime } = require('../../utils/util');
+const util = require('../../utils/util');
+const ajax = require('../../utils/ajax');
+const messageBox = require('../../utils/messageBox');
+const config = require('../../config');
 
 Page({
   /**
@@ -12,7 +15,7 @@ Page({
       motoBuyDate: '',
       motoLicensePlate: ''
     },
-    dateNowStr: formatTime(new Date(), 'date')
+    dateNowStr: util.formatTime(new Date(), 'date')
   },
 
   /**
@@ -71,16 +74,26 @@ Page({
   },
 
   handleFormSubmit() {
-    console.log(this.data.motoInfo);
-    const self = this;
-    wx.showToast({
-      title: '保存成功', icon: 'success', duration: 1500
-    });
-    setTimeout(() => {
-      wx.navigateTo({
-        url: '../index/index'
-      })
-    }, 1500);
+    const motoInfo = this.data.motoInfo;
+
+    if (!motoInfo.motoPhotoUrl) {
+      return messageBox.toast('请上传车辆图片');
+    } else if (!motoInfo.motoName) {
+      return messageBox.toast('请输入车辆名称');
+    } else if (!motoInfo.motoBuyDate) {
+      return messageBox.toast('请选择购买日期');
+    } else if (!motoInfo.motoLicensePlate) {
+      return messageBox.toast('请输入车牌号');
+    }
+    ajax.post(`${config.apiHost}/moto`, motoInfo)
+      .then(() => {
+        console.log(motoInfo);
+        setTimeout(() => {
+          wx.navigateTo({
+            url: '../index/index'
+          })
+        }, 1500);
+      });
   },
   updateMotoName(e) {
     const value = e.detail.value;
