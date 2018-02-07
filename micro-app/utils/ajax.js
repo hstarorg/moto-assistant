@@ -1,9 +1,14 @@
+const defaults = {
+  headers: {}
+};
+
 const _request = (method, url, data, options) => {
   return new Promise((resolve, reject) => {
     const reqObject = {
       url,
       data,
       method,
+      header: defaults.headers,
       dataType: 'json',
       success(res) {
         resolve(res);
@@ -14,8 +19,8 @@ const _request = (method, url, data, options) => {
     };
     wx.request(reqObject);
   });
-
 };
+
 module.exports = {
   get(url) {
     return _request('GET', url, null, {});
@@ -28,5 +33,24 @@ module.exports = {
   },
   delete(url, data) {
     return _request('DELETE', url, null, {});
+  },
+  setToken(token) {
+    defaults.headers['x-ma-token'] = token;
+  },
+  uploadFile(url, filePath, formData) {
+    return new Promise((resolve, reject) => {
+      wx.uploadFile({
+        url,
+        filePath,
+        name: 'file',
+        header: defaults.headers,
+        formData,
+        success(res) {
+          resolve(res);
+        }, fail(res) {
+          reject(res);
+        }
+      })
+    })
   }
 };

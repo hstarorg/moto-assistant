@@ -75,7 +75,6 @@ Page({
 
   handleFormSubmit() {
     const motoInfo = this.data.motoInfo;
-
     if (!motoInfo.motoPhotoUrl) {
       return messageBox.toast('请上传车辆图片');
     } else if (!motoInfo.motoName) {
@@ -85,9 +84,9 @@ Page({
     } else if (!motoInfo.motoLicensePlate) {
       return messageBox.toast('请输入车牌号');
     }
-    ajax.post(`${config.apiHost}/moto`, motoInfo)
+    ajax.uploadFile(`${config.apiHost}/moto`, motoInfo.motoPhotoUrl, motoInfo)
       .then(() => {
-        console.log(motoInfo);
+        messageBox.toast('添加车辆成功');
         setTimeout(() => {
           wx.navigateTo({
             url: '../index/index'
@@ -118,8 +117,7 @@ Page({
       sourceType: ['album', 'camera'], // 可以指定来源是相册还是相机，默认二者都有
       success: function (res) {
         // 返回选定照片的本地文件路径列表，tempFilePath可以作为img标签的src属性显示图片
-        var tempFilePaths = res.tempFilePaths;
-        self.setInputData('motoInfo.motoPhotoUrl', tempFilePaths[0]);
+        self.setInputData('motoInfo.motoPhotoUrl', res.tempFilePaths[0]);
       }
     })
   }

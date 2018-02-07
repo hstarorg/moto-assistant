@@ -31,6 +31,7 @@ App({
               ajax.post(`${config.apiHost}/account/token`, postData)
                 .then(({ data }) => {
                   this.globalData.token = data.token;
+                  ajax.setToken(data.token);
                 })
               // 由于 getUserInfo 是网络请求，可能会在 Page.onLoad 之后才返回
               // 所以此处加入 callback 以防止这种情况
