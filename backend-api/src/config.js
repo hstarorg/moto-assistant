@@ -6,6 +6,14 @@ module.exports = {
   routesPath: path.join(__dirname, 'routes'),
   wxParams: {
     appId: 'wx1b12531c503b20b6',
-    appSecret: '4aeb5d3d9a0390a8f37b0616765e29e8'
+    appSecret: ''
+  },
+  dbConfig: {
+    connectionLimit: 10,
+    host: '192.168.1.200',
+    port: 3308,
+    user: 'root',
+    password: 'humin',
+    database: 'moto_db'
   }
 };

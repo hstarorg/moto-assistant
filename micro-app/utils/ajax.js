@@ -5,13 +5,11 @@ const _request = (method, url, data, options) => {
       data,
       method,
       dataType: 'json',
-      success(a, b, c) {
-        console.log(a);
-        resolve();
+      success(res) {
+        resolve(res);
       },
-      fail(a, b, c) {
-        console.log(a, b, c);
-        reject();
+      fail(res) {
+        reject(res);
       }
     };
     wx.request(reqObject);
