@@ -15,5 +15,11 @@ module.exports = {
     user: 'root',
     password: 'humin',
     database: 'moto_db'
+  },
+  appName: 'moto_assistant',
+  imageHost: 'http://img.hstar.org/',
+  qiniu: {
+    ak: '',
+    sk: ''
   }
 };

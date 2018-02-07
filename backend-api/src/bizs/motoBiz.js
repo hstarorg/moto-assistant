@@ -1,18 +1,20 @@
 const { validator } = require('fast-koa');
-const { db } = require('../common');
+const { db, util } = require('../common');
 const { MotoSqls } = require('./sqlstore');
 const { MotoSchemas } = require('./schemas');
 
 const addNewMoto = async ctx => {
-  const data = ctx.request.body;
-  await validator.validate(data, MotoSchemas.MOTO_SCHEMA);
+  const { fields, files } = ctx.request.body;
+  await validator.validate(fields, MotoSchemas.MOTO_SCHEMA);
   const now = Date.now();
-  const moto = Object.assign({}, data, {
+  const motoPhotoUrl = (await util.saveFile(files.file)).path;
+  const moto = Object.assign({}, fields, {
     ownerId: ctx.state.user.id,
     createDate: now,
     lastUpdateDate: now,
-    motoBuyDate: Date.parse(data.motoBuyDate),
-    status: 'Active'
+    motoBuyDate: Date.parse(fields.motoBuyDate),
+    status: 'Active',
+    motoPhotoUrl
   });
   await db.executeNonQuery(MotoSqls.CREATE_MOTO, moto);
   ctx.status = 201;
