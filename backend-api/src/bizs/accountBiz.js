@@ -12,29 +12,24 @@ const processUserToken = async ctx => {
     userInfo.createDate = userInfo.lastUpdateDate = Date.now();
     const findUser = await db.executeScalar(AccountSqls.FIND_USER_BY_OPENID, userInfo);
     if (findUser) {
+      userInfo.id = findUser.id;
       await db.executeNonQuery(AccountSqls.UPDATE_USER, userInfo);
     } else {
-      await db.executeNonQuery(AccountSqls.INSERT_USER, userInfo);
+      const userId = await db.executeInsert(AccountSqls.INSERT_USER, userInfo);
+      userInfo.id = userId;
     }
     const token = util.generatorToken();
     userInfo.token = token;
+    tokenStore.set(token, userInfo);
     ctx.body = userInfo;
     return;
   }
   ctx.throw(403);
-  // "openId": "o-Ree4s6_eNtlkaJCAYeGey3sX6M",
-  // "nickName": "幻☆精灵",
-  // "gender": 1,
-  // "language": "zh_CN",
-  // "city": "Chengdu",
-  // "province": "Sichuan",
-  // "country": "China",
-  // "avatarUrl": "https://wx.qlogo.cn/mmopen/vi_32/PiajxSqBRaELf0o9iaZYxI5YFib0Aib8Atu2eEj1AmXmqUGIeUj457NZpniac8RgNMY22xJp3Gu6ibhjPNeuzBgoWQ2w/0",
 };
 
 const checkUserStatus = async (ctx, next) => {
   if (ctx.state.user) {
-    await next();
+    return await next();
   }
   ctx.throw(401);
 };

@@ -4,7 +4,22 @@
 
 ## 用户信息
 
-整体基于微信的用户体系，所以存储的信息为微信给到的信。
+整体基于微信的用户体系，所以存储的信息为微信给到的内容。
+
+微信给出的信息如下： 
+
+```json
+{
+  "openId": "o-Ree4s6_eNtlkaJCAYeGey3sX6M",
+  "nickName": "幻☆精灵",
+  "gender": 1,
+  "language": "zh_CN",
+  "city": "Chengdu",
+  "province": "Sichuan",
+  "country": "China",
+  "avatarUrl": "https://wx.qlogo.cn/mmopen/vi_32/PiajxSqBRaELf0o9iaZYxI5YFib0Aib8Atu2eEj1AmXmqUGIeUj457NZpniac8RgNMY22xJp3Gu6ibhjPNeuzBgoWQ2w/0"
+}
+```
 
 ## 车辆信息
 

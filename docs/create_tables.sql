@@ -23,7 +23,8 @@ CREATE TABLE `moto` (
   `motoLicensePlate` varchar(50) NOT NULL COMMENT '车牌号',
   `motoPhotoUrl` varchar(1000) NOT NULL COMMENT '图片地址',
   `createDate` bigint(20) NOT NULL COMMENT '创建日期',
-  `Status` varchar(50) NOT NULL COMMENT '状态',
+  `status` varchar(50) NOT NULL COMMENT '状态',
+  `lastUpdateDate` bigint(20) NOT NULL COMMENT '最后更新日期',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 

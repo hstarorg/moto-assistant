@@ -8,6 +8,7 @@ fastKoa.initApp({
   enableHelmet: true,
   enableLogger: true,
   enableResponseTime: true,
+  bodyOptions: { multipart: true },
   onRoutesLoading(app) {
     app.use(accountBiz.setUserInfo);
   }
