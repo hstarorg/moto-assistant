@@ -20,6 +20,10 @@ const addNewMoto = async ctx => {
   ctx.status = 201;
 };
 
-const getUserMotoList = async ctx => {};
+const getUserMotoList = async ctx => {
+  const userId = ctx.state.user.id;
+  const motoList = await db.executeQuery(MotoSqls.GET_USER_MOTO_LIST, { ownerId: userId });
+  ctx.body = motoList;
+};
 
 module.exports = { addNewMoto, getUserMotoList };

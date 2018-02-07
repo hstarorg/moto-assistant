@@ -17,7 +17,7 @@ CREATE TABLE `user` (
 -- 创建车辆信息表
 CREATE TABLE `moto` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '自增主键',
-  `owerId` int(11) NOT NULL COMMENT '所属人',
+  `ownerId` int(11) NOT NULL COMMENT '所属人',
   `motoName` varchar(100) NOT NULL COMMENT '车辆名称',
   `motoBuyDate` bigint(20) NOT NULL COMMENT '购买时间',
   `motoLicensePlate` varchar(50) NOT NULL COMMENT '车牌号',
