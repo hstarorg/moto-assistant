@@ -11,6 +11,7 @@ WHERE id = @id;
   `,
   GET_USER_MOTO_LIST: `
 SELECT * FROM moto
-WHERE ownerId = @ownerId;
+WHERE ownerId = @ownerId
+ORDER BY lastUpdateDate DESC;
   `
 };
