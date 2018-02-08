@@ -20,8 +20,13 @@ const formatTime = (date, format) => {
 const formatNumber = n => {
   n = n.toString();
   return n[1] ? n : '0' + n;
-}
+};
+
+const fixed2ForNum = n => {
+  return n.toFixed(2);
+};
 
 module.exports = {
-  formatTime: formatTime
-}
+  formatTime,
+  fixed2ForNum
+};

@@ -1,0 +1,43 @@
+<view class="container">
+  <view class="all-data-view">
+    <view class="all-data-view-label">累计数据</view>
+    <view class="text-block">
+      总里程：
+      <text>{{statisticsData.totalMileage}}公里</text>
+    </view>
+    <view class="text-block">
+      总消费：
+      <text>{{statisticsData.totalAmount}}元</text>
+    </view>
+    <view class="text-block">
+      平均油耗：
+      <text>{{statisticsData.avgFuel}}L/100公里</text>
+    </view>
+  </view>
+  <scroll-view>
+    <view class="fuel-item" wx:for="{{fuelList}}" wx:key="item.id">
+      <view class="text-block">
+        加油时间：
+        <text>{{item.refuelDate}}</text>
+      </view>
+      <view class="text-block">
+        当前里程：
+        <text>{{item.currentMileage}}公里</text>
+      </view>
+      <view class="text-block">
+        本次消费：
+        <text>￥{{item.refuelAmount}}元</text>
+      </view>
+      <view class="text-block">
+        本次油价：
+        <text>￥{{item.uitlPrice}}元/L</text>
+      </view>
+      <view class="text-block">
+        加油量：
+        <text>{{item.fuelCount}}L</text>
+      </view>
+    </view>
+  </scroll-view>
+
+  <view class="btn-add-fuel"> + </view>
+</view>

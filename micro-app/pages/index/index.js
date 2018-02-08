@@ -41,10 +41,16 @@ Page({
   handleBtnAddTap: function () {
     wx.navigateTo({
       url: '../moto-add/moto-add'
-    })
+    });
+  },
+  navigateToFuelList(e) {
+    const motoId = e.currentTarget.dataset.motoId;
+    wx.navigateTo({
+      url: `../fuel-list/fuel-list?motoId=${motoId}`
+    });
   },
   _loadUserMotoList() {
-    ajax.get(`${config.apiHost}/moto`)
+    ajax.get(`${config.apiHost}/motos`)
       .then(({ data }) => {
         wx.hideLoading();
         this.setData({ motoList: data });

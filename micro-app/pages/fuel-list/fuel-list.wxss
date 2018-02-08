@@ -1,0 +1,54 @@
+/* pages/fuel-list/fuel-list.wxss */
+
+.all-data-view {
+  border: 1px solid #ccc;
+  position: relative;
+  width: 700rpx;
+  padding: 50rpx 10rpx 10rpx 10rpx;
+  margin-bottom: 30rpx;
+}
+
+.all-data-view-label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  padding: 5rpx;
+  font-size: 28rpx;
+  background: lightgoldenrodyellow;
+  border-right: 1px solid #ccc;
+  border-bottom: 1px solid #ccc;
+}
+
+.fuel-item {
+  border: 1px solid #eee;
+  font-size: 28rpx;
+  padding: 10rpx;
+  margin-bottom: 15rpx;
+}
+
+.text-block {
+  display: inline-block;
+  font-size: 28rpx;
+  width: 345rpx;
+}
+
+.text-block > text {
+  color: orange;
+}
+
+.btn-add-fuel {
+  width: 100rpx;
+  height: 100rpx;
+  border: 1px solid green;
+  text-align: center;
+  border-radius: 50%;
+  background: lightgreen;
+  line-height: 100rpx;
+  position: fixed;
+  left: 325rpx;
+  bottom: 30rpx;
+}
+
+.btn-add-fuel:hover {
+  opacity: 0.8;
+}

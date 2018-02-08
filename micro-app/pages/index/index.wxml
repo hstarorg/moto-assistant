@@ -1,14 +1,16 @@
 <!--index.wxml-->
 <view class="container">
-  <view class="content-container">
-    <view class="moto-item" wx:for="{{motoList}}">
-      <image class="moto-item-photo" src="{{item.motoPhotoUrl}}" background-size="cover"></image>
-      <view class="moto-item-content">
-        <text class="moto-item-name">{{item.motoName}}</text>
-        <text class='moto-item-desc'>总里程：1111，总耗油：5555，平均油耗：5555</text>
+  <scroll-view scroll-y="true" class="scroll-view">
+    <view class="content-container">
+      <view class="moto-item" wx:for="{{motoList}}" wx:key="item.id" bindtap="navigateToFuelList" data-moto-id="{{item.id}}">
+        <image class="moto-item-photo" src="{{item.motoPhotoUrl}}" background-size="cover"></image>
+        <view class="moto-item-content">
+          <text class="moto-item-name">{{item.motoName}}</text>
+          <text class='moto-item-desc'>总里程：1111，总耗油：5555，平均油耗：5555</text>
+        </view>
       </view>
     </view>
-  </view>
+  </scroll-view>
   <view>
     <button type="primary" class="btn-add-moto" bindtap='handleBtnAddTap'>添加车辆</button>
   </view>

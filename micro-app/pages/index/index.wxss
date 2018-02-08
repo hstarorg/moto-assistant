@@ -2,6 +2,7 @@
 
 .content-container {
   width: 720rpx;
+  overflow-y: auto;
 }
 
 .moto-item {
@@ -31,11 +32,18 @@
 }
 
 .moto-item-desc {
-  font-size: 12px;
+  font-size: 24rpx;
   line-height: 64rpx;
 }
 
 .btn-add-moto {
   width: 720rpx;
   font-size: 32rpx;
+  position: fixed;
+  bottom: 30rpx;
+  left: 15rpx;
+}
+
+.scroll-view {
+  height: calc(100vh - 155rpx);
 }

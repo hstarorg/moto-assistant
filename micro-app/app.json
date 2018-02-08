@@ -1,7 +1,8 @@
 {
   "pages": [
     "pages/index/index",
-    "pages/moto-add/moto-add"
+    "pages/moto-add/moto-add",
+    "pages/fuel-list/fuel-list"
   ],
   "window": {
     "backgroundTextStyle": "light",

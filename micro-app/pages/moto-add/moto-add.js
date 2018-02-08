@@ -84,13 +84,13 @@ Page({
     } else if (!motoInfo.motoLicensePlate) {
       return messageBox.toast('请输入车牌号');
     }
-    ajax.uploadFile(`${config.apiHost}/moto`, motoInfo.motoPhotoUrl, motoInfo)
+    ajax.uploadFile(`${config.apiHost}/motos`, motoInfo.motoPhotoUrl, motoInfo)
       .then(() => {
         messageBox.toast('添加车辆成功');
         setTimeout(() => {
-          wx.navigateTo({
+          wx.reLaunch({
             url: '../index/index'
-          })
+          });
         }, 1500);
       });
   },
