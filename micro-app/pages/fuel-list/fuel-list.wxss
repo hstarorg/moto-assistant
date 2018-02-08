@@ -19,6 +19,10 @@
   border-bottom: 1px solid #ccc;
 }
 
+.scroll-view {
+  height: calc(100vh - 224rpx);
+}
+
 .fuel-item {
   border: 1px solid #eee;
   font-size: 28rpx;
@@ -51,4 +55,74 @@
 
 .btn-add-fuel:hover {
   opacity: 0.8;
+}
+
+.popup-view.hide {
+  display: none;
+}
+
+.popup-view-mask {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: #ddd;
+  opacity: 0.5;
+}
+
+.popup-view-panel {
+  background: #fff;
+  z-index: 10;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  height: 500rpx;
+  width: 750rpx;
+}
+
+.popup-view-header {
+  height: 80rpx;
+  line-height: 80rpx;
+  text-align: center;
+  font-size: 32rpx;
+  background: #fff;
+  border-top: 1px solid #ccc;
+  border-bottom: 1px solid #eee;
+}
+
+.btn-cancel, .btn-ok {
+  margin-top: 11rpx;
+}
+
+.btn-cancel {
+  margin-left: 15rpx;
+}
+
+.btn-ok {
+  margin-right: 15rpx;
+}
+
+.popup-view-body {
+  padding: 15rpx;
+}
+
+.section {
+  display: flex;
+}
+
+.form-label {
+  width: 160rpx;
+  font-size: 28rpx;
+  line-height: 84rpx;
+}
+
+input[name=input], .date-picker {
+  font-size: 28rpx;
+  flex: 1;
+  height: 84rpx;
+}
+
+.form-item {
+  border-bottom: 1px solid #eee;
 }

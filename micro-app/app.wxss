@@ -1,4 +1,5 @@
 /**app.wxss**/
+
 .container {
   height: 100%;
   display: flex;
@@ -7,4 +8,12 @@
   justify-content: space-between;
   padding: 15rpx;
   box-sizing: border-box;
-} 
+}
+
+.pull-left {
+  float: left;
+}
+
+.pull-right {
+  float: right;
+}

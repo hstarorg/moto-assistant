@@ -14,7 +14,7 @@
       <text>{{statisticsData.avgFuel}}L/100公里</text>
     </view>
   </view>
-  <scroll-view>
+  <scroll-view scroll-y="true" class="scroll-view">
     <view class="fuel-item" wx:for="{{fuelList}}" wx:key="item.id">
       <view class="text-block">
         加油时间：
@@ -39,5 +39,37 @@
     </view>
   </scroll-view>
 
-  <view class="btn-add-fuel"> + </view>
+  <view class="btn-add-fuel" bindtap="handleAddFuelClick"> + </view>
+  <view class="popup-view {{hidePopup ? 'hide': ''}}">
+    <view class='popup-view-mask'></view>
+    <view class="popup-view-panel">
+      <view class="popup-view-header">
+        添加加油信息
+        <button size="mini" class="pull-left btn-cancel" bindtap="cancelFuelAdd">取消</button>
+        <button size="mini" type="primary" class="pull-right btn-ok" bindtap="handelAddFuelRecord">确定</button>
+      </view>
+      <view class="popup-view-body">
+        <form class="form-moto-fuel" bindsubmit="handlePopupFormSubmit">
+          <view class="section form-item">
+            <text class="form-label">加油时间：</text>
+            <picker class="date-picker" value="{{fuelModel.refuelDate}}" mode="date" bindchange="bindDateChange">
+              <input name="input" placeholder="请输入加油时间" value="{{fuelModel.refuelDate}}" />
+            </picker>
+          </view>
+          <view class="section form-item">
+            <text class="form-label">当前里程：</text>
+            <input type="digit" name="input" placeholder='请输入当前行驶里程' value="{{fuelModel.currentMileage}}" bindinput="updateCurrentMileage" />
+          </view>
+          <view class="section form-item">
+            <text class="form-label">当前油价：</text>
+            <input type="digit" name="input" placeholder="请输入今日油价" value="{{fuelModel.uitlPrice}}" bindinput="updateUitlPrice" />
+          </view>
+          <view class="section form-item">
+            <text class="form-label">消费金额：</text>
+            <input type="digit" name="input" placeholder="请输入加油总金额" value="{{fuelModel.refuelAmount}}" bindinput="updateRefuelAmount" />
+          </view>
+        </form>
+      </view>
+    </view>
+  </view>
 </view>

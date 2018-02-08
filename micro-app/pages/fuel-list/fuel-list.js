@@ -11,10 +11,17 @@ Page({
   data: {
     motoId: 0,
     fuelList: [],
+    hidePopup: true,
     statisticsData: { // 统计数据
       totalMileage: 0, // 总里程
       totalAmount: 0, // 总消费
       avgFuel: 0 // 平均油耗
+    },
+    fuelModel: {
+      refuelDate: '',
+      currentMileage: '',
+      refuelAmount: '',
+      uitlPrice: ''
     }
   },
 
@@ -74,8 +81,8 @@ Page({
   onShareAppMessage: function () {
 
   },
-  fixed2(num) {
-    return num.toFixed(2);
+  handlePopupFormSubmit() {
+
   },
   _loadFuelList() {
     ajax.get(`${config.apiHost}/motos/${this.data.motoId}/fuel`)
@@ -87,6 +94,59 @@ Page({
           x.fuelCount = util.fixed2ForNum(x.fuelCount);
         });
         this.setData({ fuelList: data.fuelList, statisticsData: data.statisticsData });
+      });
+  },
+  updateCurrentMileage(e) {
+    const value = e.detail.value;
+    this._setInputData('fuelModel.currentMileage', value);
+  },
+  updateUitlPrice(e) {
+    const value = e.detail.value;
+    this._setInputData('fuelModel.uitlPrice', value);
+  },
+  updateRefuelAmount(e) {
+    const value = e.detail.value;
+    this._setInputData('fuelModel.refuelAmount', value);
+  },
+  bindDateChange(e) {
+    const value = e.detail.value;
+    this._setInputData('fuelModel.refuelDate', value);
+  },
+  _setInputData(key, value) {
+    this.setData({ [key]: value });
+  },
+  handleAddFuelClick() {
+    // init the model
+    this.setData({
+      fuelModel: {
+        refuelDate: util.formatTime(new Date(), 'date'),
+        currentMileage: '',
+        refuelAmount: '',
+        uitlPrice: ''
+      }
+    });
+
+    this.setData({ hidePopup: false });
+  },
+  cancelFuelAdd() {
+    this.setData({ hidePopup: true });
+  },
+  handelAddFuelRecord() {
+    console.log(this.data.fuelModel);
+    const fuelModel = this.data.fuelModel;
+    if (!fuelModel.refuelDate) {
+      return messageBox.toast('请选择加油日期');
+    } else if (!fuelModel.currentMileage) {
+      return messageBox.toast('请输入当前里程');
+    } else if (!fuelModel.uitlPrice) {
+      return messageBox.toast('请输入当日油价');
+    } else if (!fuelModel.refuelAmount) {
+      return messageBox.toast('请输入加油总额');
+    }
+    ajax.post(`${config.apiHost}/motos/${this.data.motoId}/fuel`, fuelModel)
+      .then(({ data }) => {
+        this.cancelFuelAdd();
+        this._loadFuelList();
       });
   }
 })
