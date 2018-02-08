@@ -26,4 +26,35 @@ const getUserMotoList = async ctx => {
   ctx.body = motoList;
 };
 
-module.exports = { addNewMoto, getUserMotoList };
+const getMotoFuelList = async ctx => {
+  const motoId = ctx.params.motoId;
+  const fuelList = await db.executeQuery(MotoSqls.GET_MOTO_FUEL_LIST, { motoId });
+  const statisticsData = await _getMotoStatisticsData(motoId);
+  ctx.body = {
+    statisticsData,
+    fuelList
+  };
+};
+
+const _getMotoStatisticsData = async motoId => {
+  const lastFuel = await db.executeScalar(MotoSqls.GET_LAST_FUEL, { motoId });
+  const result = {
+    totalMileage: 0, // 总里程
+    totalAmount: 0, // 总消费
+    avgFuel: 0 // 平均油耗
+  };
+  let statisticsData;
+  if (lastFuel) {
+    statisticsData = await db.executeScalar(MotoSqls.GET_MOTO_STATISTICS_DATA, { motoId, id: lastFuel.id });
+    console.log(statisticsData, lastFuel);
+  }
+  if (statisticsData && lastFuel) {
+    result.totalAmount = statisticsData.totalAmount;
+    result.totalMileage = lastFuel.currentMileage;
+    // 油耗计算公式（计算百公里油耗）：总的耗油量 / 总里程 * 100
+    result.avgFuel = (statisticsData.totalFuel / lastFuel.currentMileage * 100).toFixed(2);
+  }
+  return result;
+};
+
+module.exports = { addNewMoto, getUserMotoList, getMotoFuelList };

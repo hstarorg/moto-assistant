@@ -13,5 +13,19 @@ WHERE id = @id;
 SELECT * FROM moto
 WHERE ownerId = @ownerId
 ORDER BY lastUpdateDate DESC;
+  `,
+  GET_MOTO_FUEL_LIST: `
+SELECT * FROM fuel_consumption
+WHERE motoId = @motoId
+ORDER BY id DESC;
+  `,
+  GET_LAST_FUEL: `
+SELECT * FROM fuel_consumption
+WHERE motoId = @motoId
+ORDER BY id DESC LIMIT 1;
+  `,
+  GET_MOTO_STATISTICS_DATA: `
+SELECT sum(refuelAmount) AS totalAmount, sum(fuelCount) AS totalFuel FROM fuel_consumption
+WHERE motoId = @motoId AND id < @id;
   `
 };
