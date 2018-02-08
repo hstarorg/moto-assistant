@@ -33,10 +33,10 @@ CREATE TABLE `moto` (
 CREATE TABLE `fuel_consumption` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '自增主键',
   `motoId` int(11) NOT NULL COMMENT '车辆编号',
-  `currentMileage` int(11) NOT NULL COMMENT '当前里程',
+  `currentMileage` float NOT NULL COMMENT '当前里程',
   `refuelDate` bigint(20) NOT NULL COMMENT '加油时间',
-  `refuelAmount` decimal(38,0) NOT NULL COMMENT '加油总价',
-  `uitlPrice` decimal(38,0) NOT NULL COMMENT '单价',
+  `refuelAmount` decimal(38,4) NOT NULL COMMENT '加油总价',
+  `uitlPrice` decimal(38,4) NOT NULL COMMENT '单价',
   `fuelCount` float NOT NULL COMMENT '加油量（L）',
   `createDate` bigint(20) NOT NULL COMMENT '登记时间',
   PRIMARY KEY (`id`)
