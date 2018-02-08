@@ -57,4 +57,18 @@ const _getMotoStatisticsData = async motoId => {
   return result;
 };
 
-module.exports = { addNewMoto, getUserMotoList, getMotoFuelList };
+const createFuelRecord = async ctx => {
+  const motoId = ctx.params.motoId;
+  const data = ctx.request.body;
+  await validator.validate(data, MotoSchemas.MOTO_FUEL_SCHEMA);
+  const fuelRecord = Object.assign({}, data, {
+    motoId,
+    fuelCount: data.refuelAmount / data.uitlPrice,
+    refuelDate: Date.parse(fields.refuelDate),
+    createDate: Date.now()
+  });
+  await db.executeNonQuery(MotoSqls.INSERT_FUEL_RECORD, fuelRecord);
+  ctx.status = 201;
+};
+
+module.exports = { addNewMoto, getUserMotoList, getMotoFuelList, createFuelRecord };

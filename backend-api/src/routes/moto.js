@@ -14,6 +14,8 @@ router.post('/', motoBiz.addNewMoto);
 router.get('/', motoBiz.getUserMotoList);
 // 获取车辆下的加油信息列表
 router.get('/:motoId/fuel', motoBiz.getMotoFuelList);
+// 录入加油信息
+router.post('/:motoId/fuel', motoBiz.createFuelRecord);
 
 module.exports = {
   router

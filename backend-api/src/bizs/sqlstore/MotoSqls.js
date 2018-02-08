@@ -27,5 +27,9 @@ ORDER BY id DESC LIMIT 1;
   GET_MOTO_STATISTICS_DATA: `
 SELECT sum(refuelAmount) AS totalAmount, sum(fuelCount) AS totalFuel FROM fuel_consumption
 WHERE motoId = @motoId AND id < @id;
+  `,
+  INSERT_FUEL_RECORD: `
+INSERT INTO fuel_consumption(motoId, currentMileage, refuelDate, refuelAmount, uitlPrice, fuelCount, createDate)
+VALUES(@motoId, @currentMileage, @refuelDate, @refuelAmount, @uitlPrice, @fuelCount, @createDate);
   `
 };
