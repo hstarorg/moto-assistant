@@ -64,7 +64,7 @@ const createFuelRecord = async ctx => {
   const fuelRecord = Object.assign({}, data, {
     motoId,
     fuelCount: data.refuelAmount / data.uitlPrice,
-    refuelDate: Date.parse(fields.refuelDate),
+    refuelDate: Date.parse(data.refuelDate),
     createDate: Date.now()
   });
   await db.executeNonQuery(MotoSqls.INSERT_FUEL_RECORD, fuelRecord);
