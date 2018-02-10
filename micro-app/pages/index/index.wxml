@@ -5,8 +5,8 @@
       <view class="moto-item" wx:for="{{motoList}}" wx:key="item.id" bindtap="navigateToFuelList" data-moto-id="{{item.id}}">
         <image class="moto-item-photo" src="{{item.motoPhotoUrl}}" background-size="cover"></image>
         <view class="moto-item-content">
-          <text class="moto-item-name">{{item.motoName}}</text>
-          <text class='moto-item-desc'>总里程：1111，总耗油：5555，平均油耗：5555</text>
+          <text class="moto-item-name">{{item.motoName}}（{{item.motoLicensePlate}}）</text>
+           <text class='moto-item-desc'>暂无信息<!--总里程：1111，总耗油：5555，平均油耗：5555--></text> 
         </view>
       </view>
     </view>
