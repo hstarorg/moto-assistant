@@ -1,11 +1,10 @@
-const { validator } = require('fast-koa');
 const { AccountSchemas } = require('./schemas');
 const { AccountSqls } = require('./sqlstore');
 const { wxHelper, tokenStore, db, util } = require('../common');
 
 const processUserToken = async ctx => {
   const data = ctx.request.body;
-  await validator.validate(data, AccountSchemas.TOKEN_SCHEMA);
+  await util.validate(data, AccountSchemas.TOKEN_SCHEMA);
   const { encryptedData, iv, code } = data;
   const userInfo = await wxHelper.getUserInfo(code, encryptedData, iv);
   if (userInfo) {

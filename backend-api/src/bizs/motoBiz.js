@@ -1,11 +1,10 @@
-const { validator } = require('fast-koa');
 const { db, util } = require('../common');
 const { MotoSqls } = require('./sqlstore');
 const { MotoSchemas } = require('./schemas');
 
 const addNewMoto = async ctx => {
   const { fields, files } = ctx.request.body;
-  await validator.validate(fields, MotoSchemas.MOTO_SCHEMA);
+  await util.validate(fields, MotoSchemas.MOTO_SCHEMA);
   const now = Date.now();
   const motoPhotoUrl = (await util.saveFile(files.file)).path;
   const moto = Object.assign({}, fields, {
@@ -46,7 +45,6 @@ const _getMotoStatisticsData = async motoId => {
   let statisticsData;
   if (lastFuel) {
     statisticsData = await db.executeScalar(MotoSqls.GET_MOTO_STATISTICS_DATA, { motoId, id: lastFuel.id });
-    console.log(statisticsData, lastFuel);
   }
   if (statisticsData && lastFuel) {
     result.totalAmount = statisticsData.totalAmount;
@@ -60,7 +58,7 @@ const _getMotoStatisticsData = async motoId => {
 const createFuelRecord = async ctx => {
   const motoId = ctx.params.motoId;
   const data = ctx.request.body;
-  await validator.validate(data, MotoSchemas.MOTO_FUEL_SCHEMA);
+  await util.validate(data, MotoSchemas.MOTO_FUEL_SCHEMA);
   const fuelRecord = Object.assign({}, data, {
     motoId,
     fuelCount: data.refuelAmount / data.uitlPrice,

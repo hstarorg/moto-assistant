@@ -1,7 +1,9 @@
 const path = require('path');
 const uuid = require('uuid');
 const qiniu = require('qiniu');
+const { validator } = require('fast-koa');
 const config = require('../config');
+const joiLanguageZh = require('./joi_language_zh');
 
 qiniu.conf.ACCESS_KEY = config.qiniu.ak;
 qiniu.conf.SECRET_KEY = config.qiniu.sk;
@@ -17,6 +19,19 @@ module.exports = {
   _getUploadToken(bucket) {
     const putPolicy = new qiniu.rs.PutPolicy({ scope: bucket });
     return putPolicy.uploadToken();
+  },
+
+  /**
+   * 验证数据合法
+   * @param {any} data
+   * @param {any} schema
+   */
+  validate(data, schema) {
+    return validator.validate(data, schema, {
+      abortEarly: false,
+      allowUnknown: true,
+      language: joiLanguageZh
+    });
   },
 
   async saveFile(file, bucket) {
