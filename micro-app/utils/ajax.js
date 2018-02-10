@@ -1,3 +1,5 @@
+const messageBox = require('./messageBox');
+
 const defaults = {
   headers: {}
 };
@@ -11,6 +13,11 @@ const _request = (method, url, data, options) => {
       header: defaults.headers,
       dataType: 'json',
       success(res) {
+        console.log('ok', res);
+        if (res.statusCode >= 400) {
+          messageBox.toast(res.data && res.data.error || res.data || '');
+          return reject(res);
+        }
         resolve(res);
       },
       fail(res) {

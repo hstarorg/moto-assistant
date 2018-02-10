@@ -132,7 +132,6 @@ Page({
     this.setData({ hidePopup: true });
   },
   handelAddFuelRecord() {
-    console.log(this.data.fuelModel);
     const fuelModel = this.data.fuelModel;
     if (!fuelModel.refuelDate) {
       return messageBox.toast('请选择加油日期');
@@ -147,6 +146,8 @@ Page({
       .then(({ data }) => {
         this.cancelFuelAdd();
         this._loadFuelList();
+      }).catch(err=>{
+        console.log('err', err);
       });
   }
 })
