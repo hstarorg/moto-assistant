@@ -11,7 +11,7 @@ WHERE id = @id;
   `,
   GET_USER_MOTO_LIST: `
 SELECT * FROM moto
-WHERE ownerId = @ownerId
+WHERE ownerId = @ownerId AND status=@status
 ORDER BY lastUpdateDate DESC;
   `,
   GET_MOTO_FUEL_LIST: `

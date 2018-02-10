@@ -21,7 +21,7 @@ fastKoa.initApp({
           ctx.status = 400;
           return (ctx.body = { error: '请按照格式，填写正确的数据。' });
         }
-        ctx.body = err;
+        ctx.throw(err);
       }
     });
     app.use(accountBiz.setUserInfo);

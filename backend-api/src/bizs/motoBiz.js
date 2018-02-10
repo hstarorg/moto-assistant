@@ -21,7 +21,7 @@ const addNewMoto = async ctx => {
 
 const getUserMotoList = async ctx => {
   const userId = ctx.state.user.id;
-  const motoList = await db.executeQuery(MotoSqls.GET_USER_MOTO_LIST, { ownerId: userId });
+  const motoList = await db.executeQuery(MotoSqls.GET_USER_MOTO_LIST, { ownerId: userId, status: 'Active' });
   ctx.body = motoList;
 };
 
@@ -47,10 +47,10 @@ const _getMotoStatisticsData = async motoId => {
     statisticsData = await db.executeScalar(MotoSqls.GET_MOTO_STATISTICS_DATA, { motoId, id: lastFuel.id });
   }
   if (statisticsData && lastFuel) {
-    result.totalAmount = statisticsData.totalAmount;
-    result.totalMileage = lastFuel.currentMileage;
+    result.totalAmount = statisticsData.totalAmount || 0;
+    result.totalMileage = lastFuel.currentMileage || 0;
     // 油耗计算公式（计算百公里油耗）：总的耗油量 / 总里程 * 100
-    result.avgFuel = (statisticsData.totalFuel / lastFuel.currentMileage * 100).toFixed(2);
+    result.avgFuel = (statisticsData.totalFuel / lastFuel.currentMileage * 100 || 0).toFixed(2);
   }
   return result;
 };
