@@ -17,7 +17,12 @@ Page({
       this.setData({
         userInfo: app.globalData.userInfo,
         hasUserInfo: true
-      })
+      });
+      this._loadUserMotoList();
+    } else if (this.data.canIUse) {
+      app.userInfoReadyCallback = res => {
+        this._loadUserMotoList();
+      };
     } else {
       // 在没有 open-type=getUserInfo 版本的兼容处理
       wx.getUserInfo({
@@ -33,9 +38,6 @@ Page({
   },
   onReady() {
     wx.showLoading({ title: '加载中...' });
-    setTimeout(() => {
-      this._loadUserMotoList();
-    }, 1000);
   },
   //事件处理函数
   handleBtnAddTap: function () {
