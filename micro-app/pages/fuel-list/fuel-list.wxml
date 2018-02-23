@@ -1,17 +1,21 @@
 <view class="container">
   <view class="all-data-view">
-    <view class="all-data-view-label">累计数据</view>
-    <view class="text-block">
+    <view class="all-data-view-label">累计数据（不含最后一次记录）</view>
+    <view class="text-block full">
       总里程：
       <text>{{statisticsData.totalMileage}}公里</text>
     </view>
-    <view class="text-block">
+    <view class="text-block full">
       总消费：
       <text>{{statisticsData.totalAmount}}元</text>
     </view>
-    <view class="text-block">
+    <view class="text-block full">
       平均油耗：
       <text>{{statisticsData.avgFuel}}L/100公里</text>
+    </view>
+    <view class="text-block full">
+      每公里单价：
+      <text>{{statisticsData.avgPrice}}元/公里</text>
     </view>
   </view>
   <scroll-view scroll-y="true" class="scroll-view">

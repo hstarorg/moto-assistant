@@ -36,6 +36,10 @@
   width: 345rpx;
 }
 
+.text-block.full {
+  width: 690rpx;
+}
+
 .text-block > text {
   color: orange;
 }
