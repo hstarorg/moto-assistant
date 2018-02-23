@@ -40,7 +40,8 @@ const _getMotoStatisticsData = async motoId => {
   const result = {
     totalMileage: 0, // 总里程
     totalAmount: 0, // 总消费
-    avgFuel: 0 // 平均油耗
+    avgFuel: 0, // 平均油耗
+    avgPrice: 0 // 平均每公里单价（元）
   };
   let statisticsData;
   if (lastFuel) {
@@ -51,6 +52,7 @@ const _getMotoStatisticsData = async motoId => {
     result.totalMileage = lastFuel.currentMileage || 0;
     // 油耗计算公式（计算百公里油耗）：总的耗油量 / 总里程 * 100
     result.avgFuel = (statisticsData.totalFuel / lastFuel.currentMileage * 100 || 0).toFixed(2);
+    result.avgPrice = ((statisticsData.totalAmount || 0) / (lastFuel.currentMileage || 1)).toFixed(2);
   }
   return result;
 };
