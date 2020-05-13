@@ -1,5 +1,5 @@
 {
-  "pages": ["pages/index/index", "pages/moto-add/moto-add", "pages/fuel-list/fuel-list"],
+  "pages": ["pages/index/index", "pages/moto-add/moto-add", "pages/fuel-list/fuel-list", "pages/about/about"],
   "tabBar": {
     "custom": false,
     "color": "#7A7E83",
@@ -11,13 +11,25 @@
         "pagePath": "pages/index/index",
         "iconPath": "/assets/images/icon_component.png",
         "selectedIconPath": "/assets/images/icon_component_HL.png",
-        "text": "组件22"
+        "text": "油耗"
       },
       {
         "pagePath": "pages/fuel-list/fuel-list",
         "iconPath": "/assets/images/icon_API.png",
         "selectedIconPath": "/assets/images/icon_API_HL.png",
-        "text": "接口222"
+        "text": "车辆"
+      },
+      {
+        "pagePath": "pages/fuel-list/fuel-list",
+        "iconPath": "/assets/images/icon_API.png",
+        "selectedIconPath": "/assets/images/icon_API_HL.png",
+        "text": "统计"
+      },
+      {
+        "pagePath": "pages/about/about",
+        "iconPath": "/assets/images/icon_API.png",
+        "selectedIconPath": "/assets/images/icon_API_HL.png",
+        "text": "关于"
       }
     ]
   },
