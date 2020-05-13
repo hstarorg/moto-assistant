@@ -1,13 +1,31 @@
 {
-  "pages": [
-    "pages/index/index",
-    "pages/moto-add/moto-add",
-    "pages/fuel-list/fuel-list"
-  ],
+  "pages": ["pages/index/index", "pages/moto-add/moto-add", "pages/fuel-list/fuel-list"],
+  "tabBar": {
+    "custom": false,
+    "color": "#7A7E83",
+    "selectedColor": "#3cc51f",
+    "borderStyle": "black",
+    "backgroundColor": "#ffffff",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "iconPath": "/assets/images/icon_component.png",
+        "selectedIconPath": "/assets/images/icon_component_HL.png",
+        "text": "组件22"
+      },
+      {
+        "pagePath": "pages/fuel-list/fuel-list",
+        "iconPath": "/assets/images/icon_API.png",
+        "selectedIconPath": "/assets/images/icon_API_HL.png",
+        "text": "接口222"
+      }
+    ]
+  },
   "window": {
     "backgroundTextStyle": "light",
     "navigationBarBackgroundColor": "#fff",
     "navigationBarTitleText": "WeChat",
     "navigationBarTextStyle": "black"
-  }
+  },
+  "sitemapLocation": "sitemap.json"
 }

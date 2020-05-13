@@ -3,7 +3,6 @@
 .all-data-view {
   border: 1px solid #ccc;
   position: relative;
-  width: 700rpx;
   padding: 50rpx 10rpx 10rpx 10rpx;
   margin-bottom: 30rpx;
 }

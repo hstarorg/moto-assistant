@@ -1,17 +1,26 @@
 {
-	"description": "项目配置文件。",
+	"description": "项目配置文件",
+	"packOptions": {
+		"ignore": []
+	},
 	"setting": {
 		"urlCheck": false,
 		"es6": true,
 		"postcss": true,
 		"minified": true,
-		"newFeature": true
+		"newFeature": true,
+		"autoAudits": false
 	},
 	"compileType": "miniprogram",
-	"libVersion": "1.9.8",
+	"libVersion": "2.4.4",
 	"appid": "wx1b12531c503b20b6",
 	"projectname": "moto-assistant",
+	"debugOptions": {
+		"hidedInDevtools": []
+	},
 	"isGameTourist": false,
+	"simulatorType": "wechat",
+	"simulatorPluginLibVersion": {},
 	"condition": {
 		"search": {
 			"current": -1,

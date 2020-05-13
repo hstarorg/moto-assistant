@@ -5,6 +5,14 @@
   overflow-y: auto;
 }
 
+.moto-tabbar {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  left: 0;
+  right: 0;
+}
+
 .moto-item {
   border: 1px solid #eee;
   margin-bottom: 15rpx;
