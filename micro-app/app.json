@@ -1,5 +1,11 @@
 {
-  "pages": ["pages/index/index", "pages/moto-add/moto-add", "pages/fuel-list/fuel-list", "pages/about/about"],
+  "pages": [
+    "pages/index/index",
+    "pages/moto-add/moto-add",
+    "pages/fuel-list/fuel-list",
+    "pages/about/about",
+    "pages/statistics/statistics"
+  ],
   "tabBar": {
     "custom": false,
     "color": "#7A7E83",
@@ -14,13 +20,7 @@
         "text": "油耗"
       },
       {
-        "pagePath": "pages/fuel-list/fuel-list",
-        "iconPath": "/assets/images/icon_API.png",
-        "selectedIconPath": "/assets/images/icon_API_HL.png",
-        "text": "车辆"
-      },
-      {
-        "pagePath": "pages/fuel-list/fuel-list",
+        "pagePath": "pages/statistics/statistics",
         "iconPath": "/assets/images/icon_API.png",
         "selectedIconPath": "/assets/images/icon_API_HL.png",
         "text": "统计"
