@@ -14,6 +14,6 @@
     "weui-miniprogram": "^1.0.3"
   },
   "devDependencies": {
-    "miniprogram-api-typings": "^2.10.4"
+    "miniprogram-api-typings": "^3.4.4"
   }
 }
