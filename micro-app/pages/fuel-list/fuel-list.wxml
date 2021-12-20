@@ -19,7 +19,7 @@
     </view>
   </view>
   <scroll-view scroll-y="true" class="scroll-view">
-    <view class="fuel-item" wx:for="{{fuelList}}" wx:key="item.id">
+    <view class="fuel-item" wx:for="{{fuelList}}" wx:key="id">
       <view class="text-block">
         加油时间：
         <text>{{item.refuelDate}}</text>
@@ -42,9 +42,8 @@
       </view>
     </view>
   </scroll-view>
-
   <view class="btn-add-fuel" bindtap="handleAddFuelClick"> + </view>
-  <view class="popup-view {{hidePopup ? 'hide': ''}}">
+  <view class="popup-view {{addModalVisible ? '':'hide'}}">
     <view class='popup-view-mask'></view>
     <view class="popup-view-panel">
       <view class="popup-view-header">

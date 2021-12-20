@@ -39,7 +39,7 @@
   width: 690rpx;
 }
 
-.text-block > text {
+.text-block>text {
   color: orange;
 }
 
@@ -94,7 +94,8 @@
   border-bottom: 1px solid #eee;
 }
 
-.btn-cancel, .btn-ok {
+.btn-cancel,
+.btn-ok {
   margin-top: 11rpx;
 }
 
@@ -120,7 +121,8 @@
   line-height: 84rpx;
 }
 
-input[name=input], .date-picker {
+input[name="input"],
+.date-picker {
   font-size: 28rpx;
   flex: 1;
   height: 84rpx;

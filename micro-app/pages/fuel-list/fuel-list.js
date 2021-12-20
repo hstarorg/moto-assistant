@@ -11,7 +11,7 @@ Page({
   data: {
     motoId: 0,
     fuelList: [],
-    hidePopup: true,
+    addModalVisible: false,
     statisticsData: { // 统计数据
       totalMileage: 0, // 总里程
       totalAmount: 0, // 总消费
@@ -84,6 +84,7 @@ Page({
   handlePopupFormSubmit() {
 
   },
+
   _loadFuelList() {
     ajax.get(`${config.apiHost}/motos/${this.data.motoId}/fuel`)
       .then(({ data }) => {
@@ -123,13 +124,13 @@ Page({
         currentMileage: '',
         refuelAmount: '',
         uitlPrice: ''
-      }
+      },
+      addModalVisible: true,
     });
-
-    this.setData({ hidePopup: false });
+    console.log('test')
   },
   cancelFuelAdd() {
-    this.setData({ hidePopup: true });
+    this.setData({ addModalVisible: false });
   },
   handelAddFuelRecord() {
     const fuelModel = this.data.fuelModel;
@@ -146,7 +147,7 @@ Page({
       .then(({ data }) => {
         this.cancelFuelAdd();
         this._loadFuelList();
-      }).catch(err=>{
+      }).catch(err => {
         console.log('err', err);
       });
   }
