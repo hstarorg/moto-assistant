@@ -79,9 +79,9 @@
   background: #fff;
   z-index: 10;
   position: fixed;
-  bottom: 0;
+  top: 0;
   left: 0;
-  height: 500rpx;
+  height: 540rpx;
   width: 750rpx;
 }
 
@@ -93,6 +93,10 @@
   background: #fff;
   border-top: 1px solid #ccc;
   border-bottom: 1px solid #eee;
+}
+
+.popup-view-footer {
+  height: 80rpx;
 }
 
 .btn-cancel,

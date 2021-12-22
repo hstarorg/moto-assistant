@@ -48,8 +48,6 @@
     <view class="popup-view-panel">
       <view class="popup-view-header">
         添加加油信息
-        <button size="mini" class="pull-left btn-cancel" bindtap="cancelFuelAdd">取消</button>
-        <button size="mini" type="primary" class="pull-right btn-ok" bindtap="handelAddFuelRecord">确定</button>
       </view>
       <view class="popup-view-body">
         <form class="form-moto-fuel" bindsubmit="handlePopupFormSubmit">
@@ -72,6 +70,10 @@
             <input type="digit" name="input" placeholder="请输入加油总金额" value="{{fuelModel.refuelAmount}}" bindinput="updateRefuelAmount" />
           </view>
         </form>
+      </view>
+      <view class="popup-view-footer">
+        <button size="mini" class="pull-left btn-cancel" bindtap="cancelFuelAdd">取消</button>
+        <button size="mini" type="primary" class="pull-right btn-ok" bindtap="handelAddFuelRecord">确定</button>
       </view>
     </view>
   </view>
