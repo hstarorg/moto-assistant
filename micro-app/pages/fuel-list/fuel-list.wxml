@@ -56,7 +56,7 @@
           <view class="section form-item">
             <text class="form-label">加油时间：</text>
             <picker class="date-picker" value="{{fuelModel.refuelDate}}" mode="date" bindchange="bindDateChange">
-              <input name="input" placeholder="请输入加油时间" value="{{fuelModel.refuelDate}}" />
+              <view class="date-picker-text">{{fuelModel.refuelDate}}</view>
             </picker>
           </view>
           <view class="section form-item">
