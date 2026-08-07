@@ -59,3 +59,4 @@ typings/
 
 # Custom
 miniprogram_npm/
+dist/
