@@ -1,6 +1,6 @@
 # moto-assistant
 
-A moto assistant tool.
+一个机车油耗记录工具。
 
 ## 微信小程序配置
 

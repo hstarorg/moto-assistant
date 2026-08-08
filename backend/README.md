@@ -1,122 +1,50 @@
-# Moto Assistant Backend
+# Moto Assistant 后端
 
-NestJS 11 backend using a single `AppModule`, Express, TypeORM and PostgreSQL.
+机车油耗记录工具的后端服务，提供微信登录、车辆管理、加油记录和油耗统计接口。
+项目基于 NestJS 11、Express、TypeORM 和 PostgreSQL，车辆图片存储在私有
+Cloudflare R2 Bucket 中，并通过短期预签名 URL 访问。
 
-## Development
+服务默认监听 `7410` 端口，API 前缀为 `/api/v1`，健康检查地址为
+`GET /api/v1/health`。
 
-Copy `.env.example` to `.env`, update `DATABASE_URL`, then run:
+## 本地运行
+
+复制 `.env.example` 为 `.env` 并配置：
+
+- `DATABASE_URL`：PostgreSQL 连接字符串
+- `WECHAT_CONFIG`：`appId|appSecret`
+- `R2_CONFIG`：`accountId|accessKeyId|secretAccessKey|bucket|keyPrefix`
 
 ```sh
 pnpm install
+pnpm tm:run
 pnpm dev
 ```
 
-The API listens on port `7410` and uses the `/api/v1` global prefix. The health
-endpoint is available at `GET /api/v1/health`.
+Entity 发生变化后，可生成并检查新的 migration：
 
-### API integration test
+```sh
+pnpm tmg ./src/database/migrations/ChangeName
+```
 
-Run the single positive API flow with:
+运行 API 集成测试：
 
 ```sh
 pnpm test:e2e
 ```
 
-The test uses the PostgreSQL database configured by `DATABASE_URL` in `.env` and
-inserts a new user, moto and fuel record on every run. Use only a development
-database. WeChat login and R2 upload are mocked; controllers, authentication,
-services, TypeORM and PostgreSQL are real.
+该测试会在 `DATABASE_URL` 指向的数据库中新增测试数据，只能连接开发数据库。
 
-Required configuration:
-
-- `DATABASE_URL`: PostgreSQL connection string.
-- `WECHAT_CONFIG`: WeChat mini-program login configuration, using
-  `appId|appSecret` format.
-- `R2_CONFIG`: Cloudflare R2 vehicle image upload configuration, using this
-  pipe-delimited format:
-
-  ```text
-  accountId|accessKeyId|secretAccessKey|bucket|keyPrefix
-  ```
-
-The R2 API token should have Object Read & Write permission for only the target
-bucket. Vehicle image object keys are stored in the database, and authenticated
-vehicle-list responses contain one-hour presigned URLs for reading objects from
-the private bucket. The previous six-segment configuration remains accepted for
-configuration compatibility, but its `publicBaseUrl` segment is ignored. Stored
-vehicle image values must be R2 object keys rather than complete URLs. Invalid or
-missing R2 configuration prevents the application from starting.
-
-## API
-
-The NestJS service provides these endpoints:
-
-| Method | Path | Authentication | Description |
-| --- | --- | --- | --- |
-| `POST` | `/api/v1/account/token` | None | Exchange a `wx.login` code for an application token. |
-| `GET` | `/api/v1/motos` | `x-ma-token` | List the current user's active vehicles. |
-| `POST` | `/api/v1/motos` | `x-ma-token` | Create a vehicle using multipart field `file`. |
-| `GET` | `/api/v1/motos/:motoId/fuel` | `x-ma-token` | Return `statisticsData` and `fuelList`. |
-| `POST` | `/api/v1/motos/:motoId/fuel` | `x-ma-token` | Create a fuel record. |
-
-The login endpoint accepts only `{ "code": "<wx.login code>" }` and returns
-`{ "token": "<application token>" }`. User profile data is not required for
-authentication.
-
-Request and response fields use camel case. Fuel prices use `unitPrice`, audit
-timestamps use `createdAt` and `updatedAt`, and timestamp responses are ISO 8601
-strings. Vehicle status values are lowercase. Fuel statistics intentionally
-exclude the latest fuel record, matching the established calculation. Fuel
-endpoints verify that the vehicle belongs to the authenticated user.
-
-Authentication sessions are stored in the `auth_sessions` table. Clients receive
-the random token while PostgreSQL stores only its SHA-256 hash. Sessions have a
-two-hour absolute lifetime and a twenty-minute sliding idle timeout. They survive
-application restarts and can be shared by multiple application instances using
-the same database.
-
-## Database
-
-PostgreSQL tables belong to the `moto_assistant` schema. Database commands read
-the connection string from `DATABASE_URL` in `.env`.
-
-### Generate a migration
-
-After changing the entities, generate a migration by passing its output path and
-name to `tmg`:
+## 容器部署
 
 ```sh
-pnpm tmg ./src/database/migrations/InitTables
+docker build -t moto-assistant-backend .
+docker run --rm --env-file /path/to/backend.env moto-assistant-backend node node_modules/typeorm/cli.js migration:run -d dist/database/data-source-for-migrations.js
+docker run -d --restart unless-stopped --env-file /path/to/backend.env -p 7410:7410 moto-assistant-backend
 ```
 
-For subsequent changes, use a descriptive name:
+生产配置通过镜像外部的环境变量文件提供，数据库地址必须能从容器内部访问。
 
-```sh
-pnpm tmg ./src/database/migrations/AddUserStatus
-```
-
-The command builds the project, loads the compiled migration data source, and
-compares the entities with the database referenced by `DATABASE_URL`. Always
-review the generated SQL before committing it.
-
-### Apply migrations
-
-Apply committed migrations to local, test, staging and production databases with:
-
-```sh
-pnpm tm:run
-```
-
-New local databases should also be initialized with `pnpm tm:run`, starting from
-the committed initial migration. All environments therefore follow the same
-schema history. When a deployed schema needs correction, create another forward
-migration instead of synchronizing entities or relying on automatic rollback.
-
-For production, build and run migrations as a separate deployment step before
-starting the new application version. Back up the database first, review the SQL,
-and run the same migration against a staging copy.
-
-TypeORM migrations change PostgreSQL structure; they do not copy data from the
-legacy MySQL database. The one-time MySQL-to-PostgreSQL data transfer should be a
-separate, repeatable import job with row-count and aggregate verification before
-traffic is switched.
+GitHub Actions 的 `Backend image` workflow 只能手动运行。输入 `x.y.z` 版本号后，
+流程会向 `ghcr.io/hstarorg/moto-assistant-backend` 推送版本镜像和 `latest`，创建
+`vx.y.z` Git 标签，并自动生成 GitHub Release。
