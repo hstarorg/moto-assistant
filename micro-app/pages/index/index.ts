@@ -5,34 +5,16 @@ const app = getApp<MotoAppOptions>();
 
 Page({
   data: {
-    userInfo: {} as WechatMiniprogram.UserInfo,
-    hasUserInfo: false,
-    canIUse: wx.canIUse('button.open-type.getUserInfo'),
     motoList: [] as Moto[]
   },
 
   onLoad() {
-    if (app.globalData.userInfo) {
-      this.setData({
-        userInfo: app.globalData.userInfo,
-        hasUserInfo: true
-      });
+    if (app.globalData.token) {
       this._loadUserMotoList();
-    } else if (this.data.canIUse) {
-      app.userInfoReadyCallback = () => {
+    } else {
+      app.loginReadyCallback = () => {
         this._loadUserMotoList();
       };
-    } else {
-      // 在没有 open-type=getUserInfo 版本的兼容处理
-      wx.getUserInfo({
-        success: res => {
-          app.globalData.userInfo = res.userInfo;
-          this.setData({
-            userInfo: res.userInfo,
-            hasUserInfo: true
-          });
-        }
-      });
     }
   },
 

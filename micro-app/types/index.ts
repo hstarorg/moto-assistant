@@ -3,14 +3,12 @@ export interface AccountTokenResponse {
 }
 
 export interface MotoAppGlobalData {
-  userInfo: WechatMiniprogram.UserInfo | null;
-  code: string;
   token?: string;
 }
 
 export interface MotoAppOptions {
   globalData: MotoAppGlobalData;
-  userInfoReadyCallback?: WechatMiniprogram.GetUserInfoSuccessCallback;
+  loginReadyCallback?: () => void;
   doLogin(): void;
 }
 
