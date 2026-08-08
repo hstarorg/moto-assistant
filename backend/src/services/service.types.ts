@@ -1,18 +1,7 @@
 import type { MotoStatus } from '../constants';
 
 export interface AccountTokenResponse {
-  avatarUrl: string;
-  city: string;
-  country: string;
-  createdAt: string;
-  gender: string;
-  id: number;
-  language: string;
-  nickName: string;
-  openId: string;
-  province: string;
   token: string;
-  updatedAt: string;
 }
 
 export interface FuelStatisticsResponse {
@@ -49,15 +38,4 @@ export interface MotoResponse {
   ownerId: number;
   status: MotoStatus;
   updatedAt: string;
-}
-
-export interface WechatUserProfile {
-  avatarUrl: string;
-  city: string;
-  country: string;
-  gender: string;
-  language: string;
-  nickName: string;
-  openId: string;
-  province: string;
 }

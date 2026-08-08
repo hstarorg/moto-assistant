@@ -6,29 +6,11 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import { createDecipheriv, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { extname } from 'node:path';
-import { CreateAccountTokenDto } from '../dto/create-account-token.dto';
-import type { WechatUserProfile } from './service.types';
 
 interface WechatSessionResponse {
   openid?: string;
-  session_key?: string;
-}
-
-interface WechatWatermark {
-  appid?: string;
-}
-
-interface DecryptedWechatProfile {
-  avatarUrl?: unknown;
-  city?: unknown;
-  country?: unknown;
-  gender?: unknown;
-  language?: unknown;
-  nickName?: unknown;
-  province?: unknown;
-  watermark?: WechatWatermark;
 }
 
 interface WechatConfig {
@@ -70,31 +52,12 @@ export class ThirdPartyService implements OnApplicationShutdown {
     this.r2Client.destroy();
   }
 
-  async getWechatUserProfile(
-    dto: CreateAccountTokenDto,
-  ): Promise<WechatUserProfile> {
-    const session = await this.getWechatSession(
-      dto.code,
+  async getWechatOpenId(code: string): Promise<string> {
+    return this.getWechatOpenIdFromCode(
+      code,
       this.wechat.appId,
       this.wechat.appSecret,
     );
-    const profile = this.decryptWechatProfile(
-      dto.encryptedData,
-      dto.iv,
-      session.session_key,
-      this.wechat.appId,
-    );
-
-    return {
-      avatarUrl: this.toString(profile.avatarUrl),
-      city: this.toString(profile.city),
-      country: this.toString(profile.country),
-      gender: this.toString(profile.gender),
-      language: this.toString(profile.language),
-      nickName: this.toString(profile.nickName),
-      openId: session.openid,
-      province: this.toString(profile.province),
-    };
   }
 
   async uploadImage(file: Express.Multer.File): Promise<string> {
@@ -116,11 +79,11 @@ export class ThirdPartyService implements OnApplicationShutdown {
     return this.buildPublicUrl(this.r2.publicBaseUrl, key);
   }
 
-  private async getWechatSession(
+  private async getWechatOpenIdFromCode(
     code: string,
     appId: string,
     appSecret: string,
-  ): Promise<Required<Pick<WechatSessionResponse, 'openid' | 'session_key'>>> {
+  ): Promise<string> {
     const url = new URL('https://api.weixin.qq.com/sns/jscode2session');
     url.search = new URLSearchParams({
       appid: appId,
@@ -141,50 +104,10 @@ export class ThirdPartyService implements OnApplicationShutdown {
     }
 
     const session = (await response.json()) as WechatSessionResponse;
-    if (!session.openid || !session.session_key) {
+    if (!session.openid) {
       throw new ForbiddenException('微信登录凭证无效');
     }
-    return { openid: session.openid, session_key: session.session_key };
-  }
-
-  private decryptWechatProfile(
-    encryptedData: string,
-    iv: string,
-    sessionKey: string,
-    appId: string,
-  ): DecryptedWechatProfile {
-    try {
-      const decipher = createDecipheriv(
-        'aes-128-cbc',
-        Buffer.from(sessionKey, 'base64'),
-        Buffer.from(iv, 'base64'),
-      );
-      decipher.setAutoPadding(true);
-      const decrypted = Buffer.concat([
-        decipher.update(Buffer.from(encryptedData, 'base64')),
-        decipher.final(),
-      ]);
-      const profile = JSON.parse(
-        decrypted.toString('utf8'),
-      ) as DecryptedWechatProfile;
-
-      if (profile.watermark?.appid !== appId) {
-        throw new Error('Unexpected app id');
-      }
-      return profile;
-    } catch {
-      throw new ForbiddenException('微信用户信息校验失败');
-    }
-  }
-
-  private toString(value: unknown): string {
-    if (typeof value === 'string') {
-      return value;
-    }
-    if (typeof value === 'number' || typeof value === 'boolean') {
-      return String(value);
-    }
-    return '';
+    return session.openid;
   }
 
   private createImageKey(originalName: string, prefix: string): string {

@@ -14,7 +14,6 @@ import {
   type FuelListResponse,
   type MotoResponse,
   ThirdPartyService,
-  type WechatUserProfile,
 } from '../src/services';
 
 jest.setTimeout(30_000);
@@ -25,18 +24,8 @@ describe('API positive flow (e2e)', () => {
   const openId = `e2e-${randomUUID()}`;
   const motoName = `集成测试车辆-${randomUUID().slice(0, 8)}`;
   const motoPhotoUrl = `https://images.example.com/e2e/${randomUUID()}.jpg`;
-  const wechatProfile: WechatUserProfile = {
-    avatarUrl: '',
-    city: '',
-    country: '',
-    gender: '',
-    language: '',
-    nickName: 'API 集成测试用户',
-    openId,
-    province: '',
-  };
   const thirdParty = {
-    getWechatUserProfile: jest.fn().mockResolvedValue(wechatProfile),
+    getWechatOpenId: jest.fn().mockResolvedValue(openId),
     uploadImage: jest.fn().mockResolvedValue(motoPhotoUrl),
   };
 
@@ -69,11 +58,10 @@ describe('API positive flow (e2e)', () => {
 
     const accountResponse = await request(app.getHttpServer())
       .post('/api/v1/account/token')
-      .send({ code: 'e2e-code', encryptedData: 'e2e-data', iv: 'e2e-iv' })
+      .send({ code: 'e2e-code' })
       .expect(200);
     const account = accountResponse.body as AccountTokenResponse;
-    expect(account.openId).toBe(openId);
-    expect(account.token).toBeTruthy();
+    expect(account).toEqual({ token: expect.any(String) });
 
     await request(app.getHttpServer())
       .post('/api/v1/motos')
@@ -97,7 +85,6 @@ describe('API positive flow (e2e)', () => {
       expect.objectContaining({
         motoName,
         motoPhotoUrl,
-        ownerId: account.id,
         status: 'active',
       }),
     );

@@ -10,7 +10,6 @@ export type {
   FuelRecordResponse,
   FuelStatisticsResponse,
   MotoResponse,
-  WechatUserProfile,
 } from './service.types';
 
 export const ALL_SERVICES = [

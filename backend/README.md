@@ -51,11 +51,15 @@ The NestJS service provides these endpoints:
 
 | Method | Path | Authentication | Description |
 | --- | --- | --- | --- |
-| `POST` | `/api/v1/account/token` | None | Exchange WeChat login data for a user and token. |
+| `POST` | `/api/v1/account/token` | None | Exchange a `wx.login` code for an application token. |
 | `GET` | `/api/v1/motos` | `x-ma-token` | List the current user's active vehicles. |
 | `POST` | `/api/v1/motos` | `x-ma-token` | Create a vehicle using multipart field `file`. |
 | `GET` | `/api/v1/motos/:motoId/fuel` | `x-ma-token` | Return `statisticsData` and `fuelList`. |
 | `POST` | `/api/v1/motos/:motoId/fuel` | `x-ma-token` | Create a fuel record. |
+
+The login endpoint accepts only `{ "code": "<wx.login code>" }` and returns
+`{ "token": "<application token>" }`. User profile data is not required for
+authentication.
 
 Request and response fields use camel case. Fuel prices use `unitPrice`, audit
 timestamps use `createdAt` and `updatedAt`, and timestamp responses are ISO 8601

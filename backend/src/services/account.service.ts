@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { createHash, randomBytes } from 'node:crypto';
 import { LessThanOrEqual, Repository } from 'typeorm';
@@ -6,7 +6,7 @@ import type { AuthenticatedUser } from '../common';
 import { AppConf } from '../constants';
 import { AuthSessionEntity, UserEntity } from '../database';
 import { CreateAccountTokenDto } from '../dto/create-account-token.dto';
-import type { AccountTokenResponse, WechatUserProfile } from './service.types';
+import type { AccountTokenResponse } from './service.types';
 import { ThirdPartyService } from './third-party.service';
 
 @Injectable()
@@ -20,31 +20,32 @@ export class AccountService {
   ) {}
 
   async createToken(dto: CreateAccountTokenDto): Promise<AccountTokenResponse> {
-    const profile = await this.thirdParty.getWechatUserProfile(dto);
-    let user = await this.users.findOneBy({ openId: profile.openId });
+    const openId = await this.thirdParty.getWechatOpenId(dto.code);
+    const result = await this.users
+      .createQueryBuilder()
+      .insert()
+      .into(UserEntity)
+      .values({
+        avatarUrl: '',
+        city: '',
+        country: '',
+        gender: '',
+        language: '',
+        nickName: '',
+        openId,
+        province: '',
+      })
+      .orUpdate(['open_id'], ['open_id'])
+      .returning(['id'])
+      .execute();
+    const userId = result.identifiers[0]?.id;
 
-    if (user) {
-      this.assignProfile(user, profile);
-    } else {
-      user = this.users.create(profile);
+    if (typeof userId !== 'number') {
+      throw new InternalServerErrorException('登录失败');
     }
-    user = await this.users.save(user);
 
-    const token = await this.issueToken(user.id);
-    return {
-      avatarUrl: user.avatarUrl,
-      city: user.city,
-      country: user.country,
-      createdAt: user.createdAt.toISOString(),
-      gender: user.gender,
-      id: user.id,
-      language: user.language,
-      nickName: user.nickName,
-      openId: user.openId,
-      province: user.province,
-      token,
-      updatedAt: user.updatedAt.toISOString(),
-    };
+    const token = await this.issueToken(userId);
+    return { token };
   }
 
   async authenticateToken(token: string): Promise<AuthenticatedUser | null> {
@@ -95,15 +96,5 @@ export class AccountService {
 
   private hashToken(token: string): string {
     return createHash('sha256').update(token).digest('hex');
-  }
-
-  private assignProfile(user: UserEntity, profile: WechatUserProfile): void {
-    user.avatarUrl = profile.avatarUrl;
-    user.city = profile.city;
-    user.country = profile.country;
-    user.gender = profile.gender;
-    user.language = profile.language;
-    user.nickName = profile.nickName;
-    user.province = profile.province;
   }
 }
