@@ -22,3 +22,22 @@
     </view>
   </form>
 </view>
+
+<view wx:if="{{showPrivacy}}" class="privacy-mask">
+  <view class="privacy-dialog">
+    <text class="privacy-title">车辆图片授权</text>
+    <view class="privacy-content">
+      为选择并上传车辆图片，我们需要使用你选中的照片；选择拍照时还会使用摄像头。请阅读并同意
+      <text class="privacy-link" bindtap="openPrivacyContract">{{privacyContractName}}</text>。
+    </view>
+    <view class="privacy-actions">
+      <button bindtap="handleRejectPrivacyAuthorization">暂不使用</button>
+      <button
+        id="agree-privacy-btn"
+        type="primary"
+        open-type="agreePrivacyAuthorization"
+        bindagreeprivacyauthorization="handleAgreePrivacyAuthorization"
+      >同意并继续</button>
+    </view>
+  </view>
+</view>

@@ -39,3 +39,53 @@ input[name=input], .date-picker {
 .form-item {
   border-bottom: 1px solid #eee;
 }
+
+.privacy-mask {
+  position: fixed;
+  z-index: 1000;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.privacy-dialog {
+  width: 600rpx;
+  padding: 40rpx;
+  border-radius: 16rpx;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.privacy-title {
+  display: block;
+  margin-bottom: 24rpx;
+  font-size: 34rpx;
+  font-weight: 600;
+  text-align: center;
+}
+
+.privacy-content {
+  color: #555;
+  font-size: 28rpx;
+  line-height: 1.7;
+}
+
+.privacy-link {
+  color: #07c160;
+}
+
+.privacy-actions {
+  display: flex;
+  margin-top: 36rpx;
+}
+
+.privacy-actions button {
+  flex: 1;
+  margin: 0 8rpx;
+  font-size: 28rpx;
+}

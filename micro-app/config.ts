@@ -6,7 +6,7 @@ interface EnvironmentConfig {
 
 const environments: Record<EnvVersion, EnvironmentConfig> = {
   develop: {
-    apiBaseUrl: 'http://172.0.0.1:7410/api/v1'
+    apiBaseUrl: 'http://127.0.0.1:7410/api/v1'
   },
   trial: {
     apiBaseUrl: 'https://apis.hstar.vip/moto/api/v1'

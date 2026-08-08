@@ -13,7 +13,9 @@ Page({
       motoBuyDate: '',
       motoLicensePlate: ''
     } as MotoInfo,
-    dateNowStr: util.formatTime(new Date(), 'date')
+    dateNowStr: util.formatTime(new Date(), 'date'),
+    privacyContractName: '《小程序隐私保护指引》',
+    showPrivacy: false
   },
 
   onLoad() {},
@@ -77,12 +79,72 @@ Page({
   },
 
   handleUpdatePhoto() {
-    wx.chooseImage({
+    if (typeof wx.getPrivacySetting !== 'function') {
+      this.choosePhoto();
+      return;
+    }
+
+    wx.getPrivacySetting({
+      success: ({ needAuthorization, privacyContractName }) => {
+        if (!needAuthorization) {
+          this.choosePhoto();
+          return;
+        }
+        this.setData({
+          privacyContractName:
+            privacyContractName || '《小程序隐私保护指引》',
+          showPrivacy: true
+        });
+      },
+      fail: () => {
+        messageBox.toast('暂时无法获取隐私授权状态');
+      }
+    });
+  },
+
+  handleAgreePrivacyAuthorization() {
+    this.setData({ showPrivacy: false });
+    this.choosePhoto();
+  },
+
+  handleRejectPrivacyAuthorization() {
+    this.setData({ showPrivacy: false });
+    messageBox.toast('未同意隐私指引，无法选择车辆图片');
+  },
+
+  openPrivacyContract() {
+    if (typeof wx.openPrivacyContract !== 'function') {
+      messageBox.toast('当前微信版本不支持查看隐私指引');
+      return;
+    }
+    wx.openPrivacyContract({
+      fail: () => {
+        messageBox.toast('隐私指引打开失败');
+      }
+    });
+  },
+
+  choosePhoto() {
+    wx.chooseMedia({
       count: 1,
-      sizeType: ['original', 'compressed'],
+      mediaType: ['image'],
+      sizeType: ['compressed'],
       sourceType: ['album', 'camera'],
       success: res => {
-        this.setInputData('motoInfo.motoPhotoUrl', res.tempFilePaths[0]);
+        const file = res.tempFiles[0];
+        if (!file) {
+          return;
+        }
+        if (file.size > 10_000_000) {
+          messageBox.toast('图片不能超过 10 MB');
+          return;
+        }
+        this.setInputData('motoInfo.motoPhotoUrl', file.tempFilePath);
+      },
+      fail: ({ errMsg }) => {
+        if (!errMsg.includes('cancel')) {
+          messageBox.toast('图片选择失败，请重试');
+        }
       }
     });
   }
