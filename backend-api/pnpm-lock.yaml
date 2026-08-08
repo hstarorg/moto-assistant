@@ -24,8 +24,8 @@ importers:
         specifier: ^7.1.2
         version: 7.15.2
       uuid:
-        specifier: ^3.2.1
-        version: 3.4.0
+        specifier: ^14.0.0
+        version: 14.0.0
     devDependencies:
       fast-koa-cli:
         specifier: 0.0.1
@@ -1876,9 +1876,8 @@ packages:
     resolution: {integrity: sha512-PYxZDA+6QtvRvm//++aGdmKG/cI07jNwbROz0Ql+VzFV1+Z0Dy55NI4zZ7RHc9KKpBePNFwoErqIuqQv/cjiTA==}
     engines: {node: '>= 0.12.0'}
 
-  uuid@3.4.0:
-    resolution: {integrity: sha512-HjSDRw6gZE5JMggctHBcjVak08+KEVhSIiDzFnT9S9aegmp85S/bReBVTb4QTFaRNptJ9kuYaNhnbNEOkbKb/A==}
-    deprecated: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+  uuid@14.0.0:
+    resolution: {integrity: sha512-Qo+uWgilfSmAhXCMav1uYFynlQO7fMFiMVZsQqZRMIXp0O7rR7qjkj+cPvBHLgBqi960QCoo/PH2/6ZtVqKvrg==}
     hasBin: true
 
   v8flags@3.2.0:
@@ -4041,7 +4040,7 @@ snapshots:
       mz: 2.7.0
       unescape: 1.0.1
 
-  uuid@3.4.0: {}
+  uuid@14.0.0: {}
 
   v8flags@3.2.0:
     dependencies:

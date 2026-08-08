@@ -16,7 +16,7 @@
     "fs-extra": "^5.0.0",
     "mysql": "^2.15.0",
     "qiniu": "^7.1.2",
-    "uuid": "^3.2.1"
+    "uuid": "^14.0.0"
   },
   "devDependencies": {
     "fast-koa-cli": "0.0.1"
