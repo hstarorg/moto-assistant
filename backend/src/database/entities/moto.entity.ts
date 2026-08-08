@@ -35,7 +35,7 @@ export class MotoEntity {
   @Column({ name: 'moto_photo_url', length: 1000 })
   motoPhotoUrl!: string;
 
-  @Column({ default: MotoStatus.ACTIVE, length: 32 })
+  @Column({ default: MotoStatus.ACTIVE, length: 32, type: 'varchar' })
   status!: MotoStatus;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })

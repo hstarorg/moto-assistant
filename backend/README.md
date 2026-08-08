@@ -14,6 +14,19 @@ pnpm dev
 The API listens on port `7410` and uses the `/api/v1` global prefix. The health
 endpoint is available at `GET /api/v1/health`.
 
+### API integration test
+
+Run the single positive API flow with:
+
+```sh
+pnpm test:e2e
+```
+
+The test uses the PostgreSQL database configured by `DATABASE_URL` in `.env` and
+inserts a new user, moto and fuel record on every run. Use only a development
+database. WeChat login and R2 upload are mocked; controllers, authentication,
+services, TypeORM and PostgreSQL are real.
+
 Required configuration:
 
 - `DATABASE_URL`: PostgreSQL connection string.
