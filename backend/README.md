@@ -36,14 +36,16 @@ Required configuration:
   pipe-delimited format:
 
   ```text
-  accountId|accessKeyId|secretAccessKey|bucket|keyPrefix|publicBaseUrl
+  accountId|accessKeyId|secretAccessKey|bucket|keyPrefix
   ```
 
 The R2 API token should have Object Read & Write permission for only the target
-bucket. For production, connect a custom domain to the bucket and use it as the
-`publicBaseUrl` segment of `R2_CONFIG`; the S3 API endpoint is not the public
-image URL. Invalid or missing R2 configuration prevents the application from
-starting.
+bucket. Vehicle image object keys are stored in the database, and authenticated
+vehicle-list responses contain one-hour presigned URLs for reading objects from
+the private bucket. The previous six-segment configuration remains accepted for
+configuration compatibility, but its `publicBaseUrl` segment is ignored. Stored
+vehicle image values must be R2 object keys rather than complete URLs. Invalid or
+missing R2 configuration prevents the application from starting.
 
 ## API
 

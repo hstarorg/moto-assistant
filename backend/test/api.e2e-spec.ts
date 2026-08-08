@@ -23,10 +23,12 @@ describe('API positive flow (e2e)', () => {
 
   const openId = `e2e-${randomUUID()}`;
   const motoName = `集成测试车辆-${randomUUID().slice(0, 8)}`;
+  const motoPhotoKey = `e2e/${randomUUID()}.jpg`;
   const motoPhotoUrl = `https://images.example.com/e2e/${randomUUID()}.jpg`;
   const thirdParty = {
+    getImageUrl: jest.fn().mockResolvedValue(motoPhotoUrl),
     getWechatOpenId: jest.fn().mockResolvedValue(openId),
-    uploadImage: jest.fn().mockResolvedValue(motoPhotoUrl),
+    uploadImage: jest.fn().mockResolvedValue(motoPhotoKey),
   };
 
   beforeAll(async () => {
