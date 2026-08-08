@@ -1,0 +1,48 @@
+:host {
+  display: block;
+  margin-bottom: 16rpx;
+}
+
+.form-field__row {
+  min-height: 88rpx;
+  display: flex;
+  align-items: center;
+  border-bottom: 1rpx solid #dfe3e8;
+}
+
+.form-field__label {
+  width: 176rpx;
+  flex: none;
+  color: #30343b;
+  font-size: 28rpx;
+  line-height: 1.4;
+}
+
+.form-field__required {
+  margin-right: 6rpx;
+  color: #c5221f;
+}
+
+.form-field__error {
+  display: block;
+  min-height: 40rpx;
+  padding: 8rpx 0 0 176rpx;
+  color: #c5221f;
+  font-size: 24rpx;
+  line-height: 1.5;
+}
+
+@media (prefers-color-scheme: dark) {
+  .form-field__row {
+    border-bottom-color: #3a3d42;
+  }
+
+  .form-field__label {
+    color: #e7e9ec;
+  }
+
+  .form-field__required,
+  .form-field__error {
+    color: #ff8a86;
+  }
+}

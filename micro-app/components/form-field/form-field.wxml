@@ -1,0 +1,10 @@
+<view class="form-field__row">
+  <label wx:if="{{labelFor}}" class="form-field__label" for="{{labelFor}}">
+    <text wx:if="{{required}}" class="form-field__required">*</text>{{label}}
+  </label>
+  <text wx:else class="form-field__label">
+    <text wx:if="{{required}}" class="form-field__required">*</text>{{label}}
+  </text>
+  <slot></slot>
+</view>
+<text wx:if="{{error}}" class="form-field__error" aria-role="alert">{{error}}</text>

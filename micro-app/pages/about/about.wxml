@@ -1,2 +1,84 @@
-<!--pages/about.wxml-->
-<text>敬请期待</text>
+<scroll-view class="about-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+  <view class="about-page">
+    <view class="hero" aria-label="{{appName}} {{versionText}}">
+      <view class="brand-mark" aria-hidden="true">
+        <text class="brand-mark-text">机车</text>
+      </view>
+      <text class="app-name">{{appName}}</text>
+      <text class="app-slogan">认真记录每一次加油，更清楚地了解你的爱车</text>
+      <text wx:if="{{versionText}}" class="version-badge">{{versionText}}</text>
+    </view>
+
+    <view class="section">
+      <text class="section-title">为日常骑行记录而生</text>
+      <view class="feature-card">
+        <view class="feature-item">
+          <text class="feature-index">01</text>
+          <view class="feature-content">
+            <text class="feature-title">管理你的车辆</text>
+            <text class="feature-desc">集中保存车辆信息，快速进入每辆车的专属记录。</text>
+          </view>
+        </view>
+        <view class="feature-divider"></view>
+        <view class="feature-item">
+          <text class="feature-index">02</text>
+          <view class="feature-content">
+            <text class="feature-title">记录每次加油</text>
+            <text class="feature-desc">保留日期、里程、油量和费用，让历史有迹可循。</text>
+          </view>
+        </view>
+        <view class="feature-divider"></view>
+        <view class="feature-item">
+          <text class="feature-index">03</text>
+          <view class="feature-content">
+            <text class="feature-title">掌握用车数据</text>
+            <text class="feature-desc">自动汇总里程、油耗与费用，减少手工计算。</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="section">
+      <text class="section-title">服务与支持</text>
+      <view class="action-card">
+        <button
+          class="action-row"
+          hover-class="action-row--pressed"
+          aria-label="查看小程序隐私保护指引"
+          bindtap="openPrivacyContract"
+        >
+          <view class="action-content">
+            <text class="action-title">隐私保护指引</text>
+            <text class="action-desc">了解信息的收集与使用方式</text>
+          </view>
+          <view class="action-chevron" aria-hidden="true"></view>
+        </button>
+        <view class="action-divider"></view>
+        <button
+          class="action-row"
+          hover-class="action-row--pressed"
+          aria-label="提交反馈与建议"
+          open-type="feedback"
+        >
+          <view class="action-content">
+            <text class="action-title">反馈与建议</text>
+            <text class="action-desc">告诉我们你的使用体验</text>
+          </view>
+          <view class="action-chevron" aria-hidden="true"></view>
+        </button>
+      </view>
+    </view>
+
+    <view class="privacy-note">
+      <view class="privacy-accent" aria-hidden="true"></view>
+      <view class="privacy-content">
+        <text class="privacy-title">关于你的数据</text>
+        <text class="privacy-desc">车辆及加油记录仅用于提供本小程序的记录与统计功能。</text>
+      </view>
+    </view>
+
+    <view class="page-footer">
+      <text>{{footerText}}</text>
+    </view>
+  </view>
+</scroll-view>

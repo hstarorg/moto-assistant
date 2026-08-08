@@ -6,6 +6,11 @@
     "pages/about/about",
     "pages/statistics/statistics"
   ],
+  "usingComponents": {
+    "action-button": "/components/action-button/action-button",
+    "page-shell": "/components/page-shell/page-shell",
+    "form-field": "/components/form-field/form-field"
+  },
   "tabBar": {
     "custom": false,
     "color": "#7A7E83",
@@ -36,7 +41,7 @@
   "window": {
     "backgroundTextStyle": "light",
     "navigationBarBackgroundColor": "#fff",
-    "navigationBarTitleText": "WeChat",
+    "navigationBarTitleText": "机车助理",
     "navigationBarTextStyle": "black"
   },
   "sitemapLocation": "sitemap.json"

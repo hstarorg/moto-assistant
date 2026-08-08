@@ -1,0 +1,15 @@
+<button
+  class="action-button action-button--{{variant}}"
+  form-type="{{formType}}"
+  open-type="{{openType}}"
+  disabled="{{disabled || loading}}"
+  hover-class="action-button--pressed"
+  aria-label="{{ariaLabel || label}}"
+  catchtap="handleTap"
+  bindagreeprivacyauthorization="handleAgreePrivacyAuthorization"
+>
+  <view class="action-button__content">
+    <view wx:if="{{loading}}" class="action-button__spinner" aria-hidden="true"></view>
+    <text class="action-button__label">{{label}}</text>
+  </view>
+</button>

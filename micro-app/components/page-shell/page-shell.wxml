@@ -1,0 +1,30 @@
+<view class="page-shell {{padded ? 'page-shell--padded' : ''}}">
+  <view wx:if="{{state === 'content'}}" class="page-shell__content">
+    <slot></slot>
+  </view>
+  <view
+    wx:else
+    class="page-shell__state page-shell__state--{{stateSize}}"
+    aria-role="{{state === 'error' ? 'alert' : ''}}"
+  >
+    <view
+      wx:if="{{state === 'loading'}}"
+      class="page-shell__indicator"
+      aria-hidden="true"
+    ></view>
+    <slot wx:else name="illustration"></slot>
+    <text class="page-shell__title">{{title}}</text>
+    <text wx:if="{{description}}" class="page-shell__description">
+      {{description}}
+    </text>
+    <action-button
+      wx:if="{{actionLabel}}"
+      class="page-shell__action"
+      label="{{actionLabel}}"
+      aria-label="{{actionAriaLabel || actionLabel}}"
+      loading="{{actionLoading}}"
+      disabled="{{actionLoading}}"
+      bindtap="handleAction"
+    ></action-button>
+  </view>
+</view>

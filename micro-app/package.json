@@ -2,8 +2,9 @@
   "name": "micro-app",
   "version": "1.0.0",
   "description": "",
-  "main": "app.js",
+  "main": "app.ts",
   "scripts": {
+    "typecheck": "tsc --noEmit",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -14,6 +15,7 @@
     "weui-miniprogram": "^1.0.3"
   },
   "devDependencies": {
-    "miniprogram-api-typings": "^3.4.4"
+    "miniprogram-api-typings": "^5.2.2",
+    "typescript": "^5.8.2"
   }
 }

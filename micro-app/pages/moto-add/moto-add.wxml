@@ -1,24 +1,126 @@
 <view class="container">
   <form class="form-moto" bindsubmit="handleFormSubmit">
-    <view class="section">
-      <image class='moto-photo' src='{{motoInfo.motoPhotoUrl}}' bindtap="handleUpdatePhoto"></image>
+    <view class="photo-field">
+      <button
+        class="photo-picker"
+        hover-class="photo-picker--pressed"
+        aria-label="{{motoInfo.motoPhotoUrl ? '更换车辆图片' : '选择车辆图片'}}"
+        bindtap="handleUpdatePhoto"
+      >
+        <image
+          wx:if="{{motoInfo.motoPhotoUrl}}"
+          class="moto-photo"
+          src="{{motoInfo.motoPhotoUrl}}"
+          mode="aspectFill"
+          aria-hidden="true"
+        ></image>
+        <view wx:else class="photo-placeholder">
+          <text class="photo-placeholder-title">选择车辆图片</text>
+          <text class="photo-placeholder-desc">相册或拍照，最大 10 MB</text>
+        </view>
+      </button>
+      <text wx:if="{{formErrors.motoPhotoUrl}}" class="photo-error" aria-role="alert">
+        {{formErrors.motoPhotoUrl}}
+      </text>
     </view>
-    <view class="section form-item">
-      <text class="form-label">车辆名称：</text>
-      <input name="input" placeholder='请输入车辆名称' value="{{motoInfo.motoName}}" bindinput="updateMotoName" />
-    </view>
-    <view class="section form-item">
-      <text class="form-label">购车时间：</text>
-      <picker class="date-picker" mode="date" value="{{date}}" end="{{dateNowStr}}" bindchange="bindDateChange">
-        <input name="input" readonly placeholder="请输入购车时间" value="{{motoInfo.motoBuyDate}}" />
+
+    <form-field
+      label="车辆名称"
+      label-for="moto-name"
+      required="{{true}}"
+      error="{{formErrors.motoName}}"
+    >
+      <input
+        id="moto-name"
+        class="form-field-control"
+        name="motoName"
+        maxlength="100"
+        placeholder="请输入车辆名称"
+        value="{{motoInfo.motoName}}"
+        confirm-type="next"
+        aria-label="车辆名称，必填"
+        bindinput="updateMotoName"
+      />
+    </form-field>
+
+    <form-field
+      label="购车时间"
+      required="{{true}}"
+      error="{{formErrors.motoBuyDate}}"
+    >
+      <picker
+        class="form-field-control"
+        mode="date"
+        value="{{motoInfo.motoBuyDate}}"
+        end="{{dateNowStr}}"
+        aria-label="选择购车时间，必填"
+        bindchange="bindDateChange"
+      >
+        <view class="form-field-control-text {{motoInfo.motoBuyDate ? '' : 'placeholder'}}">
+          {{motoInfo.motoBuyDate || '请选择购车时间'}}
+        </view>
       </picker>
-    </view>
-    <view class="section form-item">
-      <text class="form-label">车牌号：</text>
-      <input name="input" placeholder="请输入车牌号" value="{{motoInfo.motoLicensePlate}}" bindinput="updateMotoLicensePlate" />
-    </view>
+    </form-field>
+
+    <form-field
+      label="车牌号"
+      label-for="license-plate"
+      required="{{true}}"
+      error="{{formErrors.motoLicensePlate}}"
+    >
+      <input
+        id="license-plate"
+        class="form-field-control"
+        name="motoLicensePlate"
+        maxlength="50"
+        placeholder="请输入车牌号"
+        value="{{motoInfo.motoLicensePlate}}"
+        confirm-type="done"
+        aria-label="车牌号，必填"
+        bindinput="updateMotoLicensePlate"
+      />
+    </form-field>
+
     <view class="btn-area">
-      <button type="primary" formType="submit">确认保存</button>
+      <action-button
+        label="{{isSubmitting ? '保存中' : '确认保存'}}"
+        aria-label="确认保存车辆"
+        form-type="submit"
+        loading="{{isSubmitting}}"
+        disabled="{{isSubmitting}}"
+      ></action-button>
     </view>
   </form>
+</view>
+
+<view wx:if="{{showPrivacy}}" class="privacy-mask">
+  <view class="privacy-dialog" aria-role="dialog" aria-label="车辆图片隐私授权">
+    <text class="privacy-title">车辆图片授权</text>
+    <view class="privacy-content">
+      为选择并上传车辆图片，我们需要使用你选中的照片；选择拍照时还会使用摄像头。请先阅读相关说明。
+    </view>
+    <action-button
+      class="privacy-contract-button"
+      variant="text"
+      label="查看{{privacyContractName}}"
+      bindtap="openPrivacyContract"
+    ></action-button>
+    <view class="privacy-actions">
+      <view class="privacy-action">
+        <action-button
+          variant="secondary"
+          label="暂不使用"
+          bindtap="handleRejectPrivacyAuthorization"
+        ></action-button>
+      </view>
+      <view class="privacy-action">
+        <action-button
+          id="agree-privacy-btn"
+          label="同意并继续"
+          open-type="agreePrivacyAuthorization"
+          bindagreeprivacyauthorization="handleAgreePrivacyAuthorization"
+        ></action-button>
+      </view>
+    </view>
+  </view>
 </view>
