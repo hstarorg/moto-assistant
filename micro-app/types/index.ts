@@ -9,7 +9,7 @@ export interface MotoAppGlobalData {
 export interface MotoAppOptions {
   globalData: MotoAppGlobalData;
   loginReadyCallback?: () => void;
-  doLogin(): void;
+  doLogin(): Promise<void>;
 }
 
 export interface Moto {

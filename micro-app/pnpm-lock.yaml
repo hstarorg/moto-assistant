@@ -1,0 +1,49 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    dependencies:
+      miniprogram-api-promise:
+        specifier: ^1.0.4
+        version: 1.0.4
+      weui-miniprogram:
+        specifier: ^1.0.3
+        version: 1.5.6
+    devDependencies:
+      miniprogram-api-typings:
+        specifier: ^5.2.2
+        version: 5.2.3
+      typescript:
+        specifier: ^5.8.2
+        version: 5.9.3
+
+packages:
+
+  miniprogram-api-promise@1.0.4:
+    resolution: {integrity: sha512-lS2ukj03Ugy8IJUDmdssklLT4kjzyRtVYwErhyDZkzxtqcxaed2xldRgNrsikigeMUBR9gAs7wgnjSKPlyKIYg==}
+
+  miniprogram-api-typings@5.2.3:
+    resolution: {integrity: sha512-KVcNSfR2VmRtz35rxkjLxE92HlsBnbT6NsKyTcDX3ebbTKAsAiTOFO1mRM82Xbe848dnEYqNGzaD48LMEvGytw==}
+
+  typescript@5.9.3:
+    resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
+    engines: {node: '>=14.17'}
+    hasBin: true
+
+  weui-miniprogram@1.5.6:
+    resolution: {integrity: sha512-bGRHUdrQkFf6FzNT5UTapAMRdZQF0UP2uKu9ZR4MkPNwO3cWzlrkW8vBLxdS6k02O3VeNFATj/AsBCjHAsMBzA==}
+
+snapshots:
+
+  miniprogram-api-promise@1.0.4: {}
+
+  miniprogram-api-typings@5.2.3: {}
+
+  typescript@5.9.3: {}
+
+  weui-miniprogram@1.5.6: {}

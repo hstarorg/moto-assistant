@@ -51,22 +51,23 @@ Page({
   handlePopupFormSubmit() {},
 
   _loadFuelList() {
-    ajax.get<FuelListResponse>(
-      `/motos/${this.data.motoId}/fuel`
-    ).then(({ data }) => {
-      const fuelList = data.fuelList.map(record => ({
-        id: record.id,
-        currentMileage: record.currentMileage,
-        refuelDate: util.formatTime(new Date(record.refuelDate), 'date'),
-        refuelAmount: util.fixed2ForNum(record.refuelAmount),
-        unitPrice: util.fixed2ForNum(record.unitPrice),
-        fuelCount: util.fixed2ForNum(record.fuelCount)
-      }));
-      this.setData({
-        fuelList,
-        statisticsData: data.statisticsData
-      });
-    });
+    ajax
+      .get<FuelListResponse>(`/motos/${this.data.motoId}/fuel`)
+      .then(({ data }) => {
+        const fuelList = data.fuelList.map(record => ({
+          id: record.id,
+          currentMileage: record.currentMileage,
+          refuelDate: util.formatTime(new Date(record.refuelDate), 'date'),
+          refuelAmount: util.fixed2ForNum(record.refuelAmount),
+          unitPrice: util.fixed2ForNum(record.unitPrice),
+          fuelCount: util.fixed2ForNum(record.fuelCount)
+        }));
+        this.setData({
+          fuelList,
+          statisticsData: data.statisticsData
+        });
+      })
+      .catch(() => undefined);
   },
 
   updateCurrentMileage(event: WechatMiniprogram.Input) {
@@ -99,7 +100,6 @@ Page({
       },
       addModalVisible: true
     });
-    console.log('test');
   },
 
   cancelFuelAdd() {
@@ -117,14 +117,15 @@ Page({
     } else if (!fuelModel.refuelAmount) {
       return messageBox.toast('请输入加油总额');
     }
-    ajax.post(
-      `/motos/${this.data.motoId}/fuel`,
-      fuelModel as unknown as WechatMiniprogram.IAnyObject
-    ).then(() => {
-      this.cancelFuelAdd();
-      this._loadFuelList();
-    }).catch((error: unknown) => {
-      console.log('err', error);
-    });
+    ajax
+      .post(
+        `/motos/${this.data.motoId}/fuel`,
+        fuelModel as unknown as WechatMiniprogram.IAnyObject
+      )
+      .then(() => {
+        this.cancelFuelAdd();
+        this._loadFuelList();
+      })
+      .catch(() => undefined);
   }
 });

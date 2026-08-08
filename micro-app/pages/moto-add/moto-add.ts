@@ -43,18 +43,21 @@ Page({
     } else if (!motoInfo.motoLicensePlate) {
       return messageBox.toast('请输入车牌号');
     }
-    ajax.uploadFile(
-      '/motos',
-      motoInfo.motoPhotoUrl,
-      motoInfo as unknown as WechatMiniprogram.IAnyObject
-    ).then(() => {
-      messageBox.toast('添加车辆成功');
-      setTimeout(() => {
-        wx.reLaunch({
-          url: '../index/index'
-        });
-      }, 1500);
-    });
+    ajax
+      .uploadFile(
+        '/motos',
+        motoInfo.motoPhotoUrl,
+        motoInfo as unknown as WechatMiniprogram.IAnyObject
+      )
+      .then(() => {
+        messageBox.toast('添加车辆成功');
+        setTimeout(() => {
+          wx.reLaunch({
+            url: '../index/index'
+          });
+        }, 1500);
+      })
+      .catch(() => undefined);
   },
 
   updateMotoName(event: WechatMiniprogram.Input) {

@@ -18,10 +18,6 @@ Page({
     }
   },
 
-  onReady() {
-    wx.showLoading({ title: '加载中...' });
-  },
-
   // 事件处理函数
   handleBtnAddTap() {
     wx.navigateTo({
@@ -43,9 +39,11 @@ Page({
   },
 
   _loadUserMotoList() {
-    ajax.get<Moto[]>('/motos').then(({ data }) => {
-      wx.hideLoading();
-      this.setData({ motoList: data });
-    });
+    ajax
+      .get<Moto[]>('/motos')
+      .then(({ data }) => {
+        this.setData({ motoList: data });
+      })
+      .catch(() => undefined);
   }
 });
