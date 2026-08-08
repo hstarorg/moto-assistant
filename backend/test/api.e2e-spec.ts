@@ -14,7 +14,6 @@ import { MotoController } from '../src/controllers/moto.controller';
 import { AccountService } from '../src/services/account.service';
 import { FuelService } from '../src/services/fuel.service';
 import { MotoService } from '../src/services/moto.service';
-import { TokenStoreService } from '../src/services/token-store.service';
 
 describe('API routes (e2e)', () => {
   let app: INestApplication<App>;
@@ -24,16 +23,19 @@ describe('API routes (e2e)', () => {
   const createMoto = jest.fn();
   const findFuel = jest.fn();
   const findMotos = jest.fn();
+  const getTokenSession = jest.fn();
 
   beforeAll(async () => {
     const moduleFixture = await Test.createTestingModule({
       controllers: [AccountController, MotoController, FuelController],
       providers: [
-        TokenStoreService,
         TokenAuthGuard,
         {
           provide: AccountService,
-          useValue: { createToken: createAccountToken },
+          useValue: {
+            authenticateToken: getTokenSession,
+            createToken: createAccountToken,
+          },
         },
         {
           provide: FuelService,
@@ -59,13 +61,14 @@ describe('API routes (e2e)', () => {
       }),
     );
     await app.init();
-    token = moduleFixture
-      .get(TokenStoreService)
-      .issue({ id: 7, openId: 'openid-7' });
+    token = 'valid-token';
   });
 
   beforeEach(() => {
     jest.clearAllMocks();
+    getTokenSession.mockImplementation((value: string) =>
+      Promise.resolve(value === token ? { id: 7 } : null),
+    );
   });
 
   it('keeps the account token route public', async () => {

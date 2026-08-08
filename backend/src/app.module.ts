@@ -2,8 +2,9 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
+import { TokenAuthGuard } from './common';
 import { ALL_CONTROLLERS } from './controllers';
-import { ALL_ENTITIES, DATABASE_SCHEMA } from './database';
+import { ALL_ENTITIES } from './database';
 import { ALL_SERVICES } from './services';
 
 @Module({
@@ -16,7 +17,6 @@ import { ALL_SERVICES } from './services';
       useFactory: (config: ConfigService) => ({
         type: 'postgres',
         url: config.getOrThrow<string>('DATABASE_URL'),
-        schema: DATABASE_SCHEMA,
         autoLoadEntities: true,
         synchronize: false,
       }),
@@ -24,6 +24,6 @@ import { ALL_SERVICES } from './services';
     TypeOrmModule.forFeature(ALL_ENTITIES),
   ],
   controllers: ALL_CONTROLLERS,
-  providers: ALL_SERVICES,
+  providers: [...ALL_SERVICES, TokenAuthGuard],
 })
 export class AppModule {}

@@ -6,9 +6,11 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { DATABASE_SCHEMA } from '../constants';
+import { AuthSessionEntity } from './auth-session.entity';
 import { MotoEntity } from './moto.entity';
 
-@Entity('users')
+@Entity({ name: 'users', schema: DATABASE_SCHEMA })
 export class UserEntity {
   @PrimaryGeneratedColumn('identity')
   id!: number;
@@ -43,6 +45,9 @@ export class UserEntity {
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
   updatedAt!: Date;
 
-  @OneToMany(() => MotoEntity, (moto) => moto.owner)
+  @OneToMany(() => MotoEntity, 'owner')
   motos?: MotoEntity[];
+
+  @OneToMany(() => AuthSessionEntity, 'user')
+  authSessions?: AuthSessionEntity[];
 }

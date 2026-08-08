@@ -1,8 +1,14 @@
+import { AuthSessionEntity } from './entities/auth-session.entity';
 import { FuelRecordEntity } from './entities/fuel-record.entity';
 import { MotoEntity } from './entities/moto.entity';
 import { UserEntity } from './entities/user.entity';
 
-export { FuelRecordEntity, MotoEntity, UserEntity };
+export { AuthSessionEntity, FuelRecordEntity, MotoEntity, UserEntity };
+export { DATABASE_SCHEMA } from './constants';
 
-export const DATABASE_SCHEMA = 'moto_assistant';
-export const ALL_ENTITIES = [FuelRecordEntity, MotoEntity, UserEntity];
+export const ALL_ENTITIES = [
+  AuthSessionEntity,
+  FuelRecordEntity,
+  MotoEntity,
+  UserEntity,
+];

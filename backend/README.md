@@ -39,9 +39,11 @@ strings. Vehicle status values are lowercase. Fuel statistics intentionally
 exclude the latest fuel record, matching the established calculation. Fuel
 endpoints verify that the vehicle belongs to the authenticated user.
 
-Tokens remain in process memory for two hours maximum, with a twenty-minute idle
-timeout. They are lost when the process restarts and do not support multi-instance
-deployments.
+Authentication sessions are stored in the `auth_sessions` table. Clients receive
+the random token while PostgreSQL stores only its SHA-256 hash. Sessions have a
+two-hour absolute lifetime and a twenty-minute sliding idle timeout. They survive
+application restarts and can be shared by multiple application instances using
+the same database.
 
 ## Database
 
@@ -54,13 +56,13 @@ After changing the entities, generate a migration by passing its output path and
 name to `tmg`:
 
 ```sh
-pnpm tmg -- ./src/database/migrations/InitTables
+pnpm tmg ./src/database/migrations/InitTables
 ```
 
 For subsequent changes, use a descriptive name:
 
 ```sh
-pnpm tmg -- ./src/database/migrations/AddUserStatus
+pnpm tmg ./src/database/migrations/AddUserStatus
 ```
 
 The command builds the project, loads the compiled migration data source, and

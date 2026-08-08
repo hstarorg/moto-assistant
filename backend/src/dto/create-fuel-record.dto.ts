@@ -15,9 +15,8 @@ export class CreateFuelRecordDto {
   @Min(0.01)
   refuelAmount!: number;
 
-  // Keep the legacy API field until the mini program is migrated.
   @Type(() => Number)
   @IsNumber()
   @Min(0.01)
-  uitlPrice!: number;
+  unitPrice!: number;
 }

@@ -8,10 +8,11 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { DATABASE_SCHEMA } from '../constants';
 import { MotoEntity } from './moto.entity';
 
 @Index('idx_fuel_records_moto_date_id', ['motoId', 'refuelDate', 'id'])
-@Entity('fuel_records')
+@Entity({ name: 'fuel_records', schema: DATABASE_SCHEMA })
 export class FuelRecordEntity {
   @PrimaryGeneratedColumn('identity')
   id!: number;
@@ -40,7 +41,7 @@ export class FuelRecordEntity {
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
   updatedAt!: Date;
 
-  @ManyToOne(() => MotoEntity, (moto) => moto.fuelRecords, {
+  @ManyToOne(() => MotoEntity, 'fuelRecords', {
     createForeignKeyConstraints: false,
     nullable: false,
   })

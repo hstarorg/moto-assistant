@@ -1,5 +1,21 @@
 import { AccountService } from './account.service';
 import { FuelService } from './fuel.service';
 import { MotoService } from './moto.service';
+import { ThirdPartyService } from './third-party.service';
 
-export const ALL_SERVICES = [AccountService, MotoService, FuelService];
+export { AccountService, FuelService, MotoService, ThirdPartyService };
+export type {
+  AccountTokenResponse,
+  FuelListResponse,
+  FuelRecordResponse,
+  FuelStatisticsResponse,
+  MotoResponse,
+  WechatUserProfile,
+} from './service.types';
+
+export const ALL_SERVICES = [
+  AccountService,
+  MotoService,
+  FuelService,
+  ThirdPartyService,
+];
