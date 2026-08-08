@@ -50,7 +50,7 @@
     "disableSWC": true
   },
   "compileType": "miniprogram",
-  "libVersion": "2.10.4",
+  "libVersion": "3.17.1",
   "appid": "wx1b12531c503b20b6",
   "projectname": "moto-assistant",
   "isGameTourist": false,
