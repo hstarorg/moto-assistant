@@ -1,4 +1,11 @@
-const formatTime = (date, format) => {
+type TimeFormat = 'date' | 'time' | 'datetime';
+
+const formatNumber = (value: number): string => {
+  const text = value.toString();
+  return text[1] ? text : `0${text}`;
+};
+
+const formatTime = (date: Date, format: TimeFormat = 'datetime'): string => {
   const year = date.getFullYear();
   const month = date.getMonth() + 1;
   const day = date.getDate();
@@ -15,18 +22,13 @@ const formatTime = (date, format) => {
     default:
       return `${dateStr} ${timeStr}`;
   }
-}
-
-const formatNumber = n => {
-  n = n.toString();
-  return n[1] ? n : '0' + n;
 };
 
-const fixed2ForNum = n => {
-  return n.toFixed(2);
+const fixed2ForNum = (value: number): string => {
+  return value.toFixed(2);
 };
 
-module.exports = {
+export = {
   formatTime,
   fixed2ForNum
 };

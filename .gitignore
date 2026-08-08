@@ -56,7 +56,13 @@ typings/
 
 # dotenv environment variables file
 .env
+.env.*
+!.env.example
+!.env.*.example
 
 # Custom
 miniprogram_npm/
 dist/
+
+# WeChat DevTools personal project settings
+project.private.config.json

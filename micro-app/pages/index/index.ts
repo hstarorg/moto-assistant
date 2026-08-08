@@ -1,60 +1,69 @@
-//index.js
-//获取应用实例
-const app = getApp();
-const config = require('../../config');
-const ajax = require('../../utils/ajax');
-const messageBox = require('../../utils/messageBox');
+import ajax = require('../../utils/ajax');
+import type { Moto, MotoAppOptions } from '../../types';
+
+const app = getApp<MotoAppOptions>();
 
 Page({
   data: {
-    userInfo: {},
+    userInfo: {} as WechatMiniprogram.UserInfo,
     hasUserInfo: false,
     canIUse: wx.canIUse('button.open-type.getUserInfo'),
-    motoList: [],
+    motoList: [] as Moto[]
   },
-  onLoad: function () {
+
+  onLoad() {
     if (app.globalData.userInfo) {
       this.setData({
         userInfo: app.globalData.userInfo,
-        hasUserInfo: true,
+        hasUserInfo: true
       });
       this._loadUserMotoList();
     } else if (this.data.canIUse) {
-      app.userInfoReadyCallback = (res) => {
+      app.userInfoReadyCallback = () => {
         this._loadUserMotoList();
       };
     } else {
       // 在没有 open-type=getUserInfo 版本的兼容处理
       wx.getUserInfo({
-        success: (res) => {
+        success: res => {
           app.globalData.userInfo = res.userInfo;
           this.setData({
             userInfo: res.userInfo,
-            hasUserInfo: true,
+            hasUserInfo: true
           });
-        },
+        }
       });
     }
   },
+
   onReady() {
     wx.showLoading({ title: '加载中...' });
   },
-  //事件处理函数
-  handleBtnAddTap: function () {
+
+  // 事件处理函数
+  handleBtnAddTap() {
     wx.navigateTo({
-      url: '../moto-add/moto-add',
+      url: '../moto-add/moto-add'
     });
   },
-  navigateToFuelList(e) {
-    const motoId = e.currentTarget.dataset.motoId;
+
+  navigateToFuelList(
+    event: WechatMiniprogram.TouchEvent<
+      WechatMiniprogram.IAnyObject,
+      WechatMiniprogram.IAnyObject,
+      { motoId: number }
+    >
+  ) {
+    const motoId = event.currentTarget.dataset.motoId;
     wx.navigateTo({
-      url: `../fuel-list/fuel-list?motoId=${motoId}`,
+      url: `../fuel-list/fuel-list?motoId=${motoId}`
     });
   },
+
   _loadUserMotoList() {
-    ajax.get(`${config.apiHost}/motos`).then(({ data }) => {
+    ajax.get<Moto[]>('/motos').then(({ data }) => {
       wx.hideLoading();
       this.setData({ motoList: data });
     });
-  },
+  }
 });
