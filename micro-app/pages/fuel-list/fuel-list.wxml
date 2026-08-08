@@ -8,10 +8,13 @@
   </view>
 
   <scroll-view scroll-y class="scroll-view">
-    <view wx:if="{{isLoaded && fuelList.length === 0}}" class="empty-state">
-      <text class="empty-state-title">还没有加油记录</text>
-      <text class="empty-state-desc">点击“添加记录”录入第一次加油信息</text>
-    </view>
+    <page-shell
+      wx:if="{{isLoaded && fuelList.length === 0}}"
+      state="empty"
+      state-size="compact"
+      title="还没有加油记录"
+      description="点击“添加记录”录入第一次加油信息"
+    ></page-shell>
     <view class="fuel-item" wx:for="{{fuelList}}" wx:key="id">
       <view class="text-block">加油时间：<text>{{item.refuelDate}}</text></view>
       <view class="text-block">当前里程：<text>{{item.currentMileage}} 公里</text></view>
@@ -21,12 +24,13 @@
     </view>
   </scroll-view>
 
-  <button
-    class="btn-add-fuel"
-    type="primary"
-    aria-label="添加加油记录"
-    bindtap="handleAddFuelClick"
-  >添加记录</button>
+  <view class="btn-add-fuel">
+    <action-button
+      label="添加记录"
+      aria-label="添加加油记录"
+      bindtap="handleAddFuelClick"
+    ></action-button>
+  </view>
 
   <view wx:if="{{addModalVisible}}" class="popup-view">
     <view class="popup-view-mask" bindtap="cancelFuelAdd"></view>
@@ -38,93 +42,101 @@
     >
       <view class="popup-view-header">添加加油信息</view>
       <view class="popup-view-body">
-        <view class="form-field">
-          <view class="section form-item">
-            <text class="form-label"><text class="required">*</text>加油时间</text>
-            <picker
-              class="date-picker"
-              value="{{fuelModel.refuelDate}}"
-              mode="date"
-              end="{{dateNowStr}}"
-              aria-label="选择加油时间，必填"
-              bindchange="bindDateChange"
-            >
-              <view class="date-picker-text">{{fuelModel.refuelDate}}</view>
-            </picker>
-          </view>
-          <text wx:if="{{fuelErrors.refuelDate}}" class="form-error" aria-role="alert">
-            {{fuelErrors.refuelDate}}
-          </text>
-        </view>
+        <form-field
+          label="加油时间"
+          required="{{true}}"
+          error="{{fuelErrors.refuelDate}}"
+        >
+          <picker
+            class="form-field-control"
+            value="{{fuelModel.refuelDate}}"
+            mode="date"
+            end="{{dateNowStr}}"
+            aria-label="选择加油时间，必填"
+            bindchange="bindDateChange"
+          >
+            <view class="form-field-control-text">{{fuelModel.refuelDate}}</view>
+          </picker>
+        </form-field>
 
-        <view class="form-field">
-          <view class="section form-item">
-            <label class="form-label" for="current-mileage"><text class="required">*</text>当前里程</label>
-            <input
-              id="current-mileage"
-              name="currentMileage"
-              type="digit"
-              maxlength="13"
-              placeholder="请输入当前行驶里程"
-              value="{{fuelModel.currentMileage}}"
-              confirm-type="next"
-              aria-label="当前里程，必填"
-              bindinput="updateCurrentMileage"
-            />
-          </view>
-          <text wx:if="{{fuelErrors.currentMileage}}" class="form-error" aria-role="alert">
-            {{fuelErrors.currentMileage}}
-          </text>
-        </view>
+        <form-field
+          label="当前里程"
+          label-for="current-mileage"
+          required="{{true}}"
+          error="{{fuelErrors.currentMileage}}"
+        >
+          <input
+            id="current-mileage"
+            class="form-field-control"
+            name="currentMileage"
+            type="digit"
+            maxlength="13"
+            placeholder="请输入当前行驶里程"
+            value="{{fuelModel.currentMileage}}"
+            confirm-type="next"
+            aria-label="当前里程，必填"
+            bindinput="updateCurrentMileage"
+          />
+        </form-field>
 
-        <view class="form-field">
-          <view class="section form-item">
-            <label class="form-label" for="unit-price"><text class="required">*</text>当前油价</label>
-            <input
-              id="unit-price"
-              name="unitPrice"
-              type="digit"
-              maxlength="11"
-              placeholder="请输入今日油价"
-              value="{{fuelModel.unitPrice}}"
-              confirm-type="next"
-              aria-label="当前油价，必填"
-              bindinput="updateUnitPrice"
-            />
-          </view>
-          <text wx:if="{{fuelErrors.unitPrice}}" class="form-error" aria-role="alert">
-            {{fuelErrors.unitPrice}}
-          </text>
-        </view>
+        <form-field
+          label="当前油价"
+          label-for="unit-price"
+          required="{{true}}"
+          error="{{fuelErrors.unitPrice}}"
+        >
+          <input
+            id="unit-price"
+            class="form-field-control"
+            name="unitPrice"
+            type="digit"
+            maxlength="11"
+            placeholder="请输入今日油价"
+            value="{{fuelModel.unitPrice}}"
+            confirm-type="next"
+            aria-label="当前油价，必填"
+            bindinput="updateUnitPrice"
+          />
+        </form-field>
 
-        <view class="form-field">
-          <view class="section form-item">
-            <label class="form-label" for="refuel-amount"><text class="required">*</text>消费金额</label>
-            <input
-              id="refuel-amount"
-              name="refuelAmount"
-              type="digit"
-              maxlength="13"
-              placeholder="请输入加油总金额"
-              value="{{fuelModel.refuelAmount}}"
-              confirm-type="done"
-              aria-label="消费金额，必填"
-              bindinput="updateRefuelAmount"
-            />
-          </view>
-          <text wx:if="{{fuelErrors.refuelAmount}}" class="form-error" aria-role="alert">
-            {{fuelErrors.refuelAmount}}
-          </text>
-        </view>
+        <form-field
+          label="消费金额"
+          label-for="refuel-amount"
+          required="{{true}}"
+          error="{{fuelErrors.refuelAmount}}"
+        >
+          <input
+            id="refuel-amount"
+            class="form-field-control"
+            name="refuelAmount"
+            type="digit"
+            maxlength="13"
+            placeholder="请输入加油总金额"
+            value="{{fuelModel.refuelAmount}}"
+            confirm-type="done"
+            aria-label="消费金额，必填"
+            bindinput="updateRefuelAmount"
+          />
+        </form-field>
       </view>
       <view class="popup-view-footer">
-        <button disabled="{{isSubmitting}}" bindtap="cancelFuelAdd">取消</button>
-        <button
-          type="primary"
-          form-type="submit"
-          loading="{{isSubmitting}}"
-          disabled="{{isSubmitting}}"
-        >{{isSubmitting ? '保存中' : '确定保存'}}</button>
+        <view class="popup-view-footer-action">
+          <action-button
+            variant="secondary"
+            label="取消"
+            disabled="{{isSubmitting}}"
+            bindtap="cancelFuelAdd"
+          ></action-button>
+        </view>
+        <view class="popup-view-footer-action">
+          <action-button
+            label="{{isSubmitting ? '保存中' : '确定保存'}}"
+            aria-label="确定保存加油记录"
+            form-type="submit"
+            loading="{{isSubmitting}}"
+            disabled="{{isSubmitting}}"
+          ></action-button>
+        </view>
       </view>
     </form>
   </view>

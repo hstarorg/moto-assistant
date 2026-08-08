@@ -19,77 +19,76 @@
           <text class="photo-placeholder-desc">相册或拍照，最大 10 MB</text>
         </view>
       </button>
-      <text wx:if="{{formErrors.motoPhotoUrl}}" class="form-error" aria-role="alert">
+      <text wx:if="{{formErrors.motoPhotoUrl}}" class="photo-error" aria-role="alert">
         {{formErrors.motoPhotoUrl}}
       </text>
     </view>
 
-    <view class="form-field">
-      <view class="section form-item">
-        <label class="form-label" for="moto-name"><text class="required">*</text>车辆名称</label>
-        <input
-          id="moto-name"
-          name="motoName"
-          maxlength="100"
-          placeholder="请输入车辆名称"
-          value="{{motoInfo.motoName}}"
-          confirm-type="next"
-          aria-label="车辆名称，必填"
-          bindinput="updateMotoName"
-        />
-      </view>
-      <text wx:if="{{formErrors.motoName}}" class="form-error" aria-role="alert">
-        {{formErrors.motoName}}
-      </text>
-    </view>
+    <form-field
+      label="车辆名称"
+      label-for="moto-name"
+      required="{{true}}"
+      error="{{formErrors.motoName}}"
+    >
+      <input
+        id="moto-name"
+        class="form-field-control"
+        name="motoName"
+        maxlength="100"
+        placeholder="请输入车辆名称"
+        value="{{motoInfo.motoName}}"
+        confirm-type="next"
+        aria-label="车辆名称，必填"
+        bindinput="updateMotoName"
+      />
+    </form-field>
 
-    <view class="form-field">
-      <view class="section form-item">
-        <text class="form-label"><text class="required">*</text>购车时间</text>
-        <picker
-          class="date-picker"
-          mode="date"
-          value="{{motoInfo.motoBuyDate}}"
-          end="{{dateNowStr}}"
-          aria-label="选择购车时间，必填"
-          bindchange="bindDateChange"
-        >
-          <view class="date-picker-text {{motoInfo.motoBuyDate ? '' : 'placeholder'}}">
-            {{motoInfo.motoBuyDate || '请选择购车时间'}}
-          </view>
-        </picker>
-      </view>
-      <text wx:if="{{formErrors.motoBuyDate}}" class="form-error" aria-role="alert">
-        {{formErrors.motoBuyDate}}
-      </text>
-    </view>
+    <form-field
+      label="购车时间"
+      required="{{true}}"
+      error="{{formErrors.motoBuyDate}}"
+    >
+      <picker
+        class="form-field-control"
+        mode="date"
+        value="{{motoInfo.motoBuyDate}}"
+        end="{{dateNowStr}}"
+        aria-label="选择购车时间，必填"
+        bindchange="bindDateChange"
+      >
+        <view class="form-field-control-text {{motoInfo.motoBuyDate ? '' : 'placeholder'}}">
+          {{motoInfo.motoBuyDate || '请选择购车时间'}}
+        </view>
+      </picker>
+    </form-field>
 
-    <view class="form-field">
-      <view class="section form-item">
-        <label class="form-label" for="license-plate"><text class="required">*</text>车牌号</label>
-        <input
-          id="license-plate"
-          name="motoLicensePlate"
-          maxlength="50"
-          placeholder="请输入车牌号"
-          value="{{motoInfo.motoLicensePlate}}"
-          confirm-type="done"
-          aria-label="车牌号，必填"
-          bindinput="updateMotoLicensePlate"
-        />
-      </view>
-      <text wx:if="{{formErrors.motoLicensePlate}}" class="form-error" aria-role="alert">
-        {{formErrors.motoLicensePlate}}
-      </text>
-    </view>
+    <form-field
+      label="车牌号"
+      label-for="license-plate"
+      required="{{true}}"
+      error="{{formErrors.motoLicensePlate}}"
+    >
+      <input
+        id="license-plate"
+        class="form-field-control"
+        name="motoLicensePlate"
+        maxlength="50"
+        placeholder="请输入车牌号"
+        value="{{motoInfo.motoLicensePlate}}"
+        confirm-type="done"
+        aria-label="车牌号，必填"
+        bindinput="updateMotoLicensePlate"
+      />
+    </form-field>
 
     <view class="btn-area">
-      <button
-        type="primary"
+      <action-button
+        label="{{isSubmitting ? '保存中' : '确认保存'}}"
+        aria-label="确认保存车辆"
         form-type="submit"
         loading="{{isSubmitting}}"
         disabled="{{isSubmitting}}"
-      >{{isSubmitting ? '保存中' : '确认保存'}}</button>
+      ></action-button>
     </view>
   </form>
 </view>
@@ -100,19 +99,28 @@
     <view class="privacy-content">
       为选择并上传车辆图片，我们需要使用你选中的照片；选择拍照时还会使用摄像头。请先阅读相关说明。
     </view>
-    <button class="privacy-contract-button" bindtap="openPrivacyContract">
-      查看{{privacyContractName}}
-    </button>
+    <action-button
+      class="privacy-contract-button"
+      variant="text"
+      label="查看{{privacyContractName}}"
+      bindtap="openPrivacyContract"
+    ></action-button>
     <view class="privacy-actions">
-      <button bindtap="handleRejectPrivacyAuthorization">暂不使用</button>
-      <button
-        id="agree-privacy-btn"
-        type="primary"
-        open-type="agreePrivacyAuthorization"
-        bindagreeprivacyauthorization="handleAgreePrivacyAuthorization"
-      >
-        同意并继续
-      </button>
+      <view class="privacy-action">
+        <action-button
+          variant="secondary"
+          label="暂不使用"
+          bindtap="handleRejectPrivacyAuthorization"
+        ></action-button>
+      </view>
+      <view class="privacy-action">
+        <action-button
+          id="agree-privacy-btn"
+          label="同意并继续"
+          open-type="agreePrivacyAuthorization"
+          bindagreeprivacyauthorization="handleAgreePrivacyAuthorization"
+        ></action-button>
+      </view>
     </view>
   </view>
 </view>

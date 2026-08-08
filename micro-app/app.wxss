@@ -16,26 +16,15 @@ page {
   box-sizing: border-box;
 }
 
-.empty-state {
-  display: flex;
-  min-height: 320rpx;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 48rpx 24rpx;
+.form-field-control {
+  height: 88rpx;
+  min-width: 0;
+  flex: 1;
   box-sizing: border-box;
-  text-align: center;
+  font-size: 30rpx;
+  line-height: 88rpx;
 }
 
-.empty-state-title {
-  color: #1f2329;
-  font-size: 32rpx;
-  font-weight: 600;
-}
-
-.empty-state-desc {
-  margin-top: 16rpx;
-  color: #606770;
-  font-size: 28rpx;
-  line-height: 1.6;
+.form-field-control-text {
+  line-height: 88rpx;
 }

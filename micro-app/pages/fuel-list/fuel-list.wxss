@@ -67,9 +67,7 @@
   bottom: 20rpx;
   bottom: calc(20rpx + constant(safe-area-inset-bottom));
   bottom: calc(20rpx + env(safe-area-inset-bottom));
-  min-width: 200rpx;
-  min-height: 88rpx;
-  font-size: 30rpx;
+  width: 200rpx;
 }
 
 .popup-view {
@@ -118,63 +116,13 @@
   padding: 20rpx 30rpx;
 }
 
-.form-field {
-  margin-bottom: 12rpx;
-}
-
-.section {
-  display: flex;
-  align-items: center;
-}
-
-.form-item {
-  min-height: 88rpx;
-  border-bottom: 1rpx solid #dfe3e8;
-}
-
-.form-label {
-  width: 176rpx;
-  flex: none;
-  color: #30343b;
-  font-size: 28rpx;
-  line-height: 1.4;
-}
-
-.required {
-  margin-right: 6rpx;
-  color: #c5221f;
-}
-
-input[name],
-.date-picker {
-  height: 88rpx;
-  flex: 1;
-  font-size: 30rpx;
-  line-height: 88rpx;
-}
-
-.date-picker-text {
-  line-height: 88rpx;
-}
-
-.form-error {
-  display: block;
-  min-height: 40rpx;
-  padding: 8rpx 0 0 176rpx;
-  color: #c5221f;
-  font-size: 24rpx;
-  line-height: 1.5;
-}
-
 .popup-view-footer {
   display: flex;
   padding: 20rpx 22rpx;
   border-top: 1rpx solid #dfe3e8;
 }
 
-.popup-view-footer button {
-  min-height: 88rpx;
+.popup-view-footer-action {
   flex: 1;
   margin: 0 8rpx;
-  font-size: 30rpx;
 }

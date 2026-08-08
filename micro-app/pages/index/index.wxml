@@ -1,32 +1,22 @@
-<view class="container">
-  <view wx:if="{{loginStatus !== 'ready'}}" class="login-state">
-    <block wx:if="{{!hasLoginFailed}}">
-      <text class="login-state-title">正在加载...</text>
-      <text class="login-state-desc">正在连接服务，请稍候</text>
-    </block>
-    <block wx:else>
-      <view aria-role="alert">
-        <text class="login-state-title">暂时无法加载</text>
-        <text class="login-state-desc">服务暂时不可用，请稍后重试。</text>
-      </view>
-      <button
-        type="primary"
-        class="btn-login-retry"
-        loading="{{loginStatus === 'loggingIn'}}"
-        disabled="{{loginStatus === 'loggingIn'}}"
-        bindtap="handleLoginRetry"
-      >
-        {{loginStatus === 'loggingIn' ? '正在加载' : '重试'}}
-      </button>
-    </block>
-  </view>
-
-  <scroll-view wx:else scroll-y class="scroll-view">
+<page-shell
+  state="{{loginStatus === 'ready' ? 'content' : (hasLoginFailed ? 'error' : 'loading')}}"
+  title="{{hasLoginFailed ? '暂时无法加载' : '正在加载...'}}"
+  description="{{hasLoginFailed ? '服务暂时不可用，请稍后重试。' : '正在连接服务，请稍候'}}"
+  action-label="{{hasLoginFailed ? (loginStatus === 'loggingIn' ? '正在加载' : '重试') : ''}}"
+  action-aria-label="重试加载车辆"
+  action-loading="{{loginStatus === 'loggingIn' && hasLoginFailed}}"
+  padded="{{true}}"
+  bindaction="handleLoginRetry"
+>
+  <scroll-view scroll-y class="scroll-view">
     <view class="content-container">
-      <view wx:if="{{isLoaded && motoList.length === 0}}" class="empty-state">
-        <text class="empty-state-title">还没有车辆</text>
-        <text class="empty-state-desc">添加车辆后即可开始记录油耗</text>
-      </view>
+      <page-shell
+        wx:if="{{isLoaded && motoList.length === 0}}"
+        state="empty"
+        state-size="compact"
+        title="还没有车辆"
+        description="添加车辆后即可开始记录油耗"
+      ></page-shell>
       <button
         class="moto-item"
         hover-class="moto-item--pressed"
@@ -51,6 +41,10 @@
     </view>
   </scroll-view>
   <view wx:if="{{loginStatus === 'ready'}}" class="btn-add-area">
-    <button type="primary" class="btn-add-moto" bindtap="handleBtnAddTap">添加车辆</button>
+    <action-button
+      class="btn-add-moto"
+      label="添加车辆"
+      bindtap="handleBtnAddTap"
+    ></action-button>
   </view>
-</view>
+</page-shell>

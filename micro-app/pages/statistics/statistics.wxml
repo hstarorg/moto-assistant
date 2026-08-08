@@ -1,28 +1,13 @@
-<view class="statistics-page">
-  <view wx:if="{{loginStatus !== 'ready'}}" class="page-state">
-    <block wx:if="{{!hasLoginFailed}}">
-      <view class="state-indicator" aria-hidden="true"></view>
-      <text class="state-title">正在准备统计</text>
-      <text class="state-desc">正在连接服务，请稍候</text>
-    </block>
-    <block wx:else>
-      <view aria-role="alert">
-        <text class="state-title">暂时无法加载</text>
-        <text class="state-desc">服务暂时不可用，请稍后重试。</text>
-      </view>
-      <button
-        type="primary"
-        class="state-action state-action--retry"
-        loading="{{loginStatus === 'loggingIn'}}"
-        disabled="{{loginStatus === 'loggingIn'}}"
-        bindtap="handleLoginRetry"
-      >
-        {{loginStatus === 'loggingIn' ? '正在加载' : '重试'}}
-      </button>
-    </block>
-  </view>
-
-  <scroll-view wx:else class="statistics-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+<page-shell
+  state="{{loginStatus === 'ready' ? 'content' : (hasLoginFailed ? 'error' : 'loading')}}"
+  title="{{hasLoginFailed ? '暂时无法加载' : '正在准备统计'}}"
+  description="{{hasLoginFailed ? '服务暂时不可用，请稍后重试。' : '正在连接服务，请稍候'}}"
+  action-label="{{hasLoginFailed ? (loginStatus === 'loggingIn' ? '正在加载' : '重试') : ''}}"
+  action-aria-label="重试加载统计"
+  action-loading="{{loginStatus === 'loggingIn' && hasLoginFailed}}"
+  bindaction="handleLoginRetry"
+>
+  <scroll-view class="statistics-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="statistics-content">
       <view wx:if="{{isLoading && !isLoaded}}" class="skeleton" aria-label="统计数据加载中">
         <view class="skeleton-hero skeleton-block"></view>
@@ -31,36 +16,43 @@
         <view class="skeleton-card skeleton-block"></view>
       </view>
 
-      <view
+      <page-shell
         wx:elif="{{loadFailed && motoStatistics.length === 0}}"
-        class="page-state page-state--content"
-        aria-role="alert"
-      >
-        <text class="state-title">统计数据加载失败</text>
-        <text class="state-desc">请检查网络后重新加载。</text>
-        <button type="primary" class="state-action" bindtap="handleDataRetry">重新加载</button>
-      </view>
+        state="error"
+        state-size="section"
+        title="统计数据加载失败"
+        description="请检查网络后重新加载。"
+        action-label="重新加载"
+        bindaction="handleDataRetry"
+      ></page-shell>
 
-      <view
+      <page-shell
         wx:elif="{{isLoaded && !loadFailed && motoStatistics.length === 0}}"
-        class="page-state page-state--content"
+        state="empty"
+        state-size="section"
+        title="还没有可统计的车辆"
+        description="添加车辆并记录加油信息后，这里会自动生成汇总。"
+        action-label="添加车辆"
+        bindaction="handleAddMoto"
       >
-        <view class="empty-graphic" aria-hidden="true">
+        <view slot="illustration" class="empty-graphic" aria-hidden="true">
           <view class="empty-bar empty-bar--short"></view>
           <view class="empty-bar empty-bar--medium"></view>
           <view class="empty-bar empty-bar--tall"></view>
         </view>
-        <text class="state-title">还没有可统计的车辆</text>
-        <text class="state-desc">添加车辆并记录加油信息后，这里会自动生成汇总。</text>
-        <button type="primary" class="state-action" bindtap="handleAddMoto">添加车辆</button>
-      </view>
+      </page-shell>
 
       <block wx:else>
         <view wx:if="{{loadFailed || partialFailure}}" class="load-notice" aria-role="alert">
           <text class="load-notice-text">
             {{loadFailed ? '更新失败，当前显示上次数据' : '部分车辆数据暂时不可用'}}
           </text>
-          <button class="load-notice-action" bindtap="handleDataRetry">重试</button>
+          <action-button
+            class="load-notice-action"
+            variant="text"
+            label="重试"
+            bindtap="handleDataRetry"
+          ></action-button>
         </view>
 
         <view class="summary-card" aria-label="全部车辆统计汇总">
@@ -77,16 +69,25 @@
           </view>
           <view class="summary-metrics">
             <view class="summary-metric">
-              <text class="metric-value">{{summary.avgFuelText}}</text>
-              <text class="metric-label">平均油耗 L/100km</text>
+              <view class="metric-reading">
+                <text class="metric-value">{{summary.avgFuelText}}</text>
+                <text class="metric-unit">L/100km</text>
+              </view>
+              <text class="metric-label">平均油耗</text>
             </view>
             <view class="summary-metric">
-              <text class="metric-value">{{summary.avgPriceText}}</text>
-              <text class="metric-label">每公里成本 元</text>
+              <view class="metric-reading">
+                <text class="metric-value">{{summary.avgPriceText}}</text>
+                <text class="metric-unit">元/km</text>
+              </view>
+              <text class="metric-label">每公里成本</text>
             </view>
             <view class="summary-metric">
-              <text class="metric-value">{{summary.recordCountText}}</text>
-              <text class="metric-label">加油记录 次</text>
+              <view class="metric-reading">
+                <text class="metric-value">{{summary.recordCountText}}</text>
+                <text class="metric-unit">次</text>
+              </view>
+              <text class="metric-label">加油记录</text>
             </view>
           </view>
         </view>
@@ -136,19 +137,31 @@
 
           <view class="moto-metrics">
             <view class="moto-metric">
-              <text class="moto-metric-value">{{item.avgFuelText}}</text>
+              <view class="moto-metric-reading">
+                <text class="moto-metric-value">{{item.avgFuelText}}</text>
+                <text class="moto-metric-unit">L/100km</text>
+              </view>
               <text class="moto-metric-label">平均油耗</text>
             </view>
             <view class="moto-metric">
-              <text class="moto-metric-value">{{item.totalAmountText}}</text>
+              <view class="moto-metric-reading">
+                <text class="moto-metric-value">{{item.totalAmountText}}</text>
+                <text class="moto-metric-unit">元</text>
+              </view>
               <text class="moto-metric-label">累计消费</text>
             </view>
             <view class="moto-metric">
-              <text class="moto-metric-value">{{item.currentMileageText}}</text>
+              <view class="moto-metric-reading">
+                <text class="moto-metric-value">{{item.currentMileageText}}</text>
+                <text class="moto-metric-unit">km</text>
+              </view>
               <text class="moto-metric-label">当前里程</text>
             </view>
             <view class="moto-metric">
-              <text class="moto-metric-value">{{item.recordCountText}}</text>
+              <view class="moto-metric-reading">
+                <text class="moto-metric-value">{{item.recordCountText}}</text>
+                <text class="moto-metric-unit">次</text>
+              </view>
               <text class="moto-metric-label">记录次数</text>
             </view>
           </view>
@@ -156,4 +169,4 @@
       </block>
     </view>
   </scroll-view>
-</view>
+</page-shell>

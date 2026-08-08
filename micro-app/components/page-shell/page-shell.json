@@ -1,0 +1,6 @@
+{
+  "component": true,
+  "usingComponents": {
+    "action-button": "/components/action-button/action-button"
+  }
+}

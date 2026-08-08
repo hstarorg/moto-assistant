@@ -3,41 +3,6 @@
   box-sizing: border-box;
 }
 
-.login-state {
-  width: 100%;
-  min-height: 60%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 48rpx 24rpx;
-  box-sizing: border-box;
-  text-align: center;
-}
-
-.login-state-title {
-  display: block;
-  color: #1f2329;
-  font-size: 36rpx;
-  font-weight: 600;
-  line-height: 1.5;
-}
-
-.login-state-desc {
-  display: block;
-  margin-top: 16rpx;
-  color: #606770;
-  font-size: 28rpx;
-  line-height: 1.6;
-}
-
-.btn-login-retry {
-  min-width: 320rpx;
-  min-height: 88rpx;
-  margin-top: 40rpx;
-  font-size: 30rpx;
-}
-
 .moto-item {
   width: 100%;
   display: flex;
@@ -117,5 +82,4 @@
 
 .btn-add-moto {
   width: 100%;
-  font-size: 32rpx;
 }

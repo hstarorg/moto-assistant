@@ -6,14 +6,14 @@ interface EnvironmentConfig {
 
 const environments: Record<EnvVersion, EnvironmentConfig> = {
   develop: {
-    apiBaseUrl: 'http://127.0.0.1:7410/api/v1'
+    apiBaseUrl: 'https://jay-local-mac.hstar.org/api/v1',
   },
   trial: {
-    apiBaseUrl: 'https://apis.hstar.vip/moto/api/v1'
+    apiBaseUrl: 'https://apis.hstar.vip/moto/api/v1',
   },
   release: {
-    apiBaseUrl: 'https://apis.hstar.vip/moto/api/v1'
-  }
+    apiBaseUrl: 'https://apis.hstar.vip/moto/api/v1',
+  },
 };
 
 const accountInfo = wx.getAccountInfoSync();
@@ -30,7 +30,7 @@ if (envVersion !== 'develop' && !environment.apiBaseUrl.startsWith('https://')) 
 
 const config = Object.freeze({
   envVersion,
-  apiBaseUrl: environment.apiBaseUrl.replace(/\/+$/, '')
+  apiBaseUrl: environment.apiBaseUrl.replace(/\/+$/, ''),
 });
 
 export = config;

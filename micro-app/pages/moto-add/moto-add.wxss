@@ -56,71 +56,22 @@
   line-height: 1.5;
 }
 
-.form-field {
-  margin-bottom: 16rpx;
-}
-
-.section {
-  display: flex;
-  align-items: center;
-}
-
-.form-item {
-  min-height: 88rpx;
-  border-bottom: 1rpx solid #dfe3e8;
-}
-
-.form-label {
-  width: 176rpx;
-  flex: none;
-  color: #30343b;
-  font-size: 28rpx;
-  line-height: 1.4;
-}
-
-.required {
-  margin-right: 6rpx;
-  color: #c5221f;
-}
-
-input[name],
-.date-picker {
-  height: 88rpx;
-  flex: 1;
-  font-size: 30rpx;
-  line-height: 88rpx;
-}
-
-.date-picker-text {
-  line-height: 88rpx;
-}
-
 .placeholder {
   color: #80868b;
 }
 
-.form-error {
+.photo-error {
   display: block;
   min-height: 40rpx;
-  padding: 8rpx 0 0 176rpx;
+  padding-top: 8rpx;
   color: #c5221f;
   font-size: 24rpx;
   line-height: 1.5;
-  text-align: left;
-}
-
-.photo-field > .form-error {
-  padding-left: 0;
   text-align: center;
 }
 
 .btn-area {
   margin-top: 32rpx;
-}
-
-.btn-area button {
-  min-height: 88rpx;
-  font-size: 32rpx;
 }
 
 .privacy-mask {
@@ -164,18 +115,7 @@ input[name],
 }
 
 .privacy-contract-button {
-  min-height: 88rpx;
   margin-top: 16rpx;
-  padding: 0;
-  background: transparent;
-  color: #057a3f;
-  font-size: 28rpx;
-  line-height: 88rpx;
-  text-decoration: underline;
-}
-
-.privacy-contract-button::after {
-  border: 0;
 }
 
 .privacy-actions {
@@ -183,9 +123,7 @@ input[name],
   margin: 36rpx -8rpx 0;
 }
 
-.privacy-actions button {
-  min-height: 88rpx;
+.privacy-action {
   flex: 1;
   margin: 0 8rpx;
-  font-size: 28rpx;
 }
