@@ -36,7 +36,7 @@ export class MotoController {
     @UploadedFile() file?: Express.Multer.File,
   ) {
     if (!file || !file.mimetype.startsWith('image/')) {
-      throw new BadRequestException('请上传正确的车辆图片。');
+      throw new BadRequestException('请上传正确的车辆图片');
     }
     return this.motoService.create(user.id, dto, file);
   }

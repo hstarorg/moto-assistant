@@ -49,8 +49,8 @@ export class ApiExceptionFilter implements ExceptionFilter {
       return '请求参数不正确';
     }
     if (status === HttpStatus.NOT_FOUND) {
-      return '请求的资源不存在。';
+      return '请求的资源不存在';
     }
-    return '服务器内部错误。';
+    return '服务器内部错误';
   }
 }

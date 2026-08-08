@@ -54,7 +54,7 @@ describe('API routes (e2e)', () => {
     app.useGlobalPipes(
       new ValidationPipe({
         exceptionFactory: () =>
-          new BadRequestException('请按照格式，填写正确的数据。'),
+          new BadRequestException('请按照格式填写正确的数据'),
         forbidNonWhitelisted: true,
         transform: true,
         whitelist: true,
@@ -85,7 +85,7 @@ describe('API routes (e2e)', () => {
     await request(app.getHttpServer())
       .get('/api/v1/motos')
       .expect(401)
-      .expect({ error: '请先登录。' });
+      .expect({ error: '请先登录' });
   });
 
   it('lists vehicles for the authenticated user', async () => {

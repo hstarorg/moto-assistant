@@ -2,12 +2,12 @@ import {
   BadGatewayException,
   ForbiddenException,
   Injectable,
-  ServiceUnavailableException,
+  type OnApplicationShutdown,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { createDecipheriv, randomUUID } from 'node:crypto';
 import { extname } from 'node:path';
-import * as qiniu from 'qiniu';
 import { CreateAccountTokenDto } from '../dto/create-account-token.dto';
 import type { WechatUserProfile } from './service.types';
 
@@ -31,25 +31,58 @@ interface DecryptedWechatProfile {
   watermark?: WechatWatermark;
 }
 
+interface WechatConfig {
+  appId: string;
+  appSecret: string;
+}
+
+interface R2Config {
+  accountId: string;
+  accessKeyId: string;
+  secretAccessKey: string;
+  bucket: string;
+  keyPrefix: string;
+  publicBaseUrl: string;
+}
+
 @Injectable()
-export class ThirdPartyService {
-  constructor(private readonly config: ConfigService) {}
+export class ThirdPartyService implements OnApplicationShutdown {
+  private readonly r2: R2Config;
+  private readonly r2Client: S3Client;
+  private readonly wechat: WechatConfig;
+
+  constructor(config: ConfigService) {
+    this.r2 = this.parseR2Config(config.getOrThrow<string>('R2_CONFIG'));
+    this.wechat = this.parseWechatConfig(
+      config.getOrThrow<string>('WECHAT_CONFIG'),
+    );
+    this.r2Client = new S3Client({
+      credentials: {
+        accessKeyId: this.r2.accessKeyId,
+        secretAccessKey: this.r2.secretAccessKey,
+      },
+      endpoint: `https://${this.r2.accountId}.r2.cloudflarestorage.com`,
+      region: 'auto',
+    });
+  }
+
+  onApplicationShutdown(): void {
+    this.r2Client.destroy();
+  }
 
   async getWechatUserProfile(
     dto: CreateAccountTokenDto,
   ): Promise<WechatUserProfile> {
-    const appId = this.config.get<string>('WECHAT_APP_ID');
-    const appSecret = this.config.get<string>('WECHAT_APP_SECRET');
-    if (!appId || !appSecret) {
-      throw new ServiceUnavailableException('微信登录服务未配置。');
-    }
-
-    const session = await this.getWechatSession(dto.code, appId, appSecret);
+    const session = await this.getWechatSession(
+      dto.code,
+      this.wechat.appId,
+      this.wechat.appSecret,
+    );
     const profile = this.decryptWechatProfile(
       dto.encryptedData,
       dto.iv,
       session.session_key,
-      appId,
+      this.wechat.appId,
     );
 
     return {
@@ -65,42 +98,22 @@ export class ThirdPartyService {
   }
 
   async uploadImage(file: Express.Multer.File): Promise<string> {
-    const accessKey = this.config.get<string>('QINIU_ACCESS_KEY');
-    const secretKey = this.config.get<string>('QINIU_SECRET_KEY');
-    const bucket = this.config.get<string>('QINIU_BUCKET') ?? 'autoupload';
-    const imageBaseUrl = this.config.get<string>('IMAGE_BASE_URL');
-    if (!accessKey || !secretKey || !imageBaseUrl) {
-      throw new ServiceUnavailableException('图片上传服务未配置。');
-    }
+    return this.uploadImageToR2(file);
+  }
 
-    const prefix =
-      this.config.get<string>('QINIU_KEY_PREFIX') ?? 'moto_assistant';
-    const extension = extname(file.originalname).toLowerCase() || '.jpg';
-    const key = `${prefix}/${randomUUID()}${extension}`;
-    const mac = new qiniu.auth.digest.Mac(accessKey, secretKey);
-    const uploadToken = new qiniu.rs.PutPolicy({ scope: bucket }).uploadToken(
-      mac,
+  private async uploadImageToR2(file: Express.Multer.File): Promise<string> {
+    const key = this.createImageKey(file.originalname, this.r2.keyPrefix);
+    await this.r2Client.send(
+      new PutObjectCommand({
+        Body: file.buffer,
+        Bucket: this.r2.bucket,
+        CacheControl: 'public, max-age=31536000, immutable',
+        ContentLength: file.size,
+        ContentType: file.mimetype,
+        Key: key,
+      }),
     );
-    const uploader = new qiniu.form_up.FormUploader(new qiniu.conf.Config());
-    const putExtra = new qiniu.form_up.PutExtra();
-    putExtra.fname = file.originalname;
-    putExtra.mimeType = file.mimetype;
-
-    try {
-      const result = await uploader.put(
-        uploadToken,
-        key,
-        file.buffer,
-        putExtra,
-      );
-      if (!result.ok()) {
-        throw new Error('Upload failed');
-      }
-    } catch {
-      throw new BadGatewayException('图片上传失败，请稍后重试。');
-    }
-
-    return `${imageBaseUrl.replace(/\/+$/, '')}/${key}`;
+    return this.buildPublicUrl(this.r2.publicBaseUrl, key);
   }
 
   private async getWechatSession(
@@ -120,16 +133,16 @@ export class ThirdPartyService {
     try {
       response = await fetch(url);
     } catch {
-      throw new BadGatewayException('微信登录服务暂时不可用。');
+      throw new BadGatewayException('微信登录服务暂时不可用');
     }
 
     if (!response.ok) {
-      throw new BadGatewayException('微信登录服务暂时不可用。');
+      throw new BadGatewayException('微信登录服务暂时不可用');
     }
 
     const session = (await response.json()) as WechatSessionResponse;
     if (!session.openid || !session.session_key) {
-      throw new ForbiddenException('微信登录凭证无效。');
+      throw new ForbiddenException('微信登录凭证无效');
     }
     return { openid: session.openid, session_key: session.session_key };
   }
@@ -160,7 +173,7 @@ export class ThirdPartyService {
       }
       return profile;
     } catch {
-      throw new ForbiddenException('微信用户信息校验失败。');
+      throw new ForbiddenException('微信用户信息校验失败');
     }
   }
 
@@ -172,5 +185,55 @@ export class ThirdPartyService {
       return String(value);
     }
     return '';
+  }
+
+  private createImageKey(originalName: string, prefix: string): string {
+    const extension = extname(originalName).toLowerCase() || '.jpg';
+    return `${prefix.replace(/^\/+|\/+$/g, '')}/${randomUUID()}${extension}`;
+  }
+
+  private buildPublicUrl(baseUrl: string, key: string): string {
+    return `${baseUrl.replace(/\/+$/, '')}/${key}`;
+  }
+
+  private parseR2Config(value: string): R2Config {
+    const parts = value.split('|');
+    if (parts.length !== 6 || parts.some((part) => part.length === 0)) {
+      throw new Error(
+        'R2_CONFIG 格式不正确，应为 accountId|accessKeyId|secretAccessKey|bucket|keyPrefix|publicBaseUrl',
+      );
+    }
+
+    const [
+      accountId,
+      accessKeyId,
+      secretAccessKey,
+      bucket,
+      keyPrefix,
+      publicBaseUrl,
+    ] = parts;
+    const url = new URL(publicBaseUrl);
+    if (url.protocol !== 'https:') {
+      throw new Error('R2_CONFIG 中的 publicBaseUrl 必须使用 HTTPS');
+    }
+
+    return {
+      accountId,
+      accessKeyId,
+      secretAccessKey,
+      bucket,
+      keyPrefix,
+      publicBaseUrl,
+    };
+  }
+
+  private parseWechatConfig(value: string): WechatConfig {
+    const parts = value.split('|');
+    if (parts.length !== 2 || parts.some((part) => part.length === 0)) {
+      throw new Error('WECHAT_CONFIG 格式不正确，应为 appId|appSecret');
+    }
+
+    const [appId, appSecret] = parts;
+    return { appId, appSecret };
   }
 }

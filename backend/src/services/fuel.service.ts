@@ -60,7 +60,7 @@ export class FuelService {
       status: MotoStatus.ACTIVE,
     });
     if (!exists) {
-      throw new NotFoundException('车辆不存在。');
+      throw new NotFoundException('车辆不存在');
     }
   }
 

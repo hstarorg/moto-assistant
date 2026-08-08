@@ -17,9 +17,20 @@ endpoint is available at `GET /api/v1/health`.
 Required configuration:
 
 - `DATABASE_URL`: PostgreSQL connection string.
-- `WECHAT_APP_ID` and `WECHAT_APP_SECRET`: WeChat mini-program login.
-- `QINIU_ACCESS_KEY`, `QINIU_SECRET_KEY` and `QINIU_BUCKET`: vehicle image upload.
-- `QINIU_KEY_PREFIX` and `IMAGE_BASE_URL`: object key prefix and public image URL.
+- `WECHAT_CONFIG`: WeChat mini-program login configuration, using
+  `appId|appSecret` format.
+- `R2_CONFIG`: Cloudflare R2 vehicle image upload configuration, using this
+  pipe-delimited format:
+
+  ```text
+  accountId|accessKeyId|secretAccessKey|bucket|keyPrefix|publicBaseUrl
+  ```
+
+The R2 API token should have Object Read & Write permission for only the target
+bucket. For production, connect a custom domain to the bucket and use it as the
+`publicBaseUrl` segment of `R2_CONFIG`; the S3 API endpoint is not the public
+image URL. Invalid or missing R2 configuration prevents the application from
+starting.
 
 ## API
 
