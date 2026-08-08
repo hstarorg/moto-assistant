@@ -1,7 +1,9 @@
-import { BadRequestException, ValidationPipe } from '@nestjs/common';
+import { BadRequestException, Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ApiExceptionFilter } from './common';
+
+const logger = new Logger('Bootstrap');
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -19,5 +21,6 @@ async function bootstrap() {
   app.enableShutdownHooks();
 
   await app.listen(7410, '0.0.0.0');
+  logger.log(`App is running at ${await app.getUrl()}`);
 }
 void bootstrap();
