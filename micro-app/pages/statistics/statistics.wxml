@@ -12,7 +12,7 @@
       </view>
       <button
         type="primary"
-        class="state-action"
+        class="state-action state-action--retry"
         loading="{{loginStatus === 'loggingIn'}}"
         disabled="{{loginStatus === 'loggingIn'}}"
         bindtap="handleLoginRetry"

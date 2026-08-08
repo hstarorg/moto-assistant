@@ -70,8 +70,23 @@
 .state-action {
   min-width: 320rpx;
   min-height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-top: 40rpx;
+  padding-top: 0;
+  padding-bottom: 0;
+  box-sizing: border-box;
   font-size: 30rpx;
+  line-height: 1.4;
+}
+
+.state-action--retry {
+  height: 88rpx;
+  display: block;
+  padding: 0 32rpx;
+  line-height: 88rpx;
+  text-align: center;
 }
 
 .empty-graphic {
@@ -124,14 +139,18 @@
 .load-notice-action {
   min-width: 112rpx;
   min-height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin: 0 0 0 16rpx;
   padding: 0 20rpx;
   border: 0;
   background: transparent;
+  box-sizing: border-box;
   color: #16683f;
   font-size: 27rpx;
   font-weight: 600;
-  line-height: 88rpx;
+  line-height: 1.4;
 }
 
 .load-notice-action::after {

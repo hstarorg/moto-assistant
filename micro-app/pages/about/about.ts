@@ -2,23 +2,20 @@ import messageBox = require('../../utils/messageBox');
 
 const getVersionText = (): string => {
   try {
-    const { envVersion, version } = wx.getAccountInfoSync().miniProgram;
-    const environmentName = {
-      develop: '开发版',
-      trial: '体验版',
-      release: ''
-    }[envVersion];
-    return [`${version ? `v${version}` : ''}`, environmentName]
-      .filter(Boolean)
-      .join(' · ') || '开发版';
+    const { version } = wx.getAccountInfoSync().miniProgram;
+    return version ? `v${version}` : '';
   } catch {
-    return '开发版';
+    return '';
   }
 };
 
+const versionText = getVersionText();
+
 Page({
   data: {
-    versionText: getVersionText()
+    appName: '机车助理',
+    footerText: ['机车助理', versionText].filter(Boolean).join(' · '),
+    versionText
   },
 
   openPrivacyContract() {

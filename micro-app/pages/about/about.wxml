@@ -1,12 +1,12 @@
 <scroll-view class="about-scroll" scroll-y enhanced show-scrollbar="{{false}}">
   <view class="about-page">
-    <view class="hero" aria-label="机车油耗助手，{{versionText}}">
+    <view class="hero" aria-label="{{appName}} {{versionText}}">
       <view class="brand-mark" aria-hidden="true">
-        <text class="brand-mark-text">MA</text>
+        <text class="brand-mark-text">机车</text>
       </view>
-      <text class="app-name">机车油耗助手</text>
+      <text class="app-name">{{appName}}</text>
       <text class="app-slogan">认真记录每一次加油，更清楚地了解你的爱车</text>
-      <text class="version-badge">{{versionText}}</text>
+      <text wx:if="{{versionText}}" class="version-badge">{{versionText}}</text>
     </view>
 
     <view class="section">
@@ -78,7 +78,7 @@
     </view>
 
     <view class="page-footer">
-      <text>机车油耗助手 · {{versionText}}</text>
+      <text>{{footerText}}</text>
     </view>
   </view>
 </scroll-view>
