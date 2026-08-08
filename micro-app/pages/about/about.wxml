@@ -1,2 +1,6 @@
-<!--pages/about.wxml-->
-<text>敬请期待</text>
+<view class="container">
+  <view class="empty-state">
+    <text class="empty-state-title">关于页面正在建设</text>
+    <text class="empty-state-desc">后续将在这里提供版本与使用说明</text>
+  </view>
+</view>

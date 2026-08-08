@@ -1,18 +1,34 @@
-<!--index.wxml-->
 <view class="container">
-	<scroll-view scroll-y="true" class="scroll-view">
-		<view class="content-container">
-			<view class="moto-item" wx:for="{{motoList}}" wx:key="id" bindtap="navigateToFuelList" data-moto-id="{{item.id}}">
-				<image class="moto-item-photo" src="{{item.motoPhotoUrl}}" background-size="cover"></image>
-				<view class="moto-item-content">
-					<text class="moto-item-name">{{item.motoName}}（{{item.motoLicensePlate}}）</text>
-					<text class='moto-item-desc'>暂无信息<!--总里程：1111，总耗油：5555，平均油耗：5555--></text>
-				</view>
-			</view>
-		</view>
-	</scroll-view>
-	<view>
-		<button type="primary" class="btn-add-moto" bindtap='handleBtnAddTap'>添加车辆</button>
-	</view>
-	<!-- <mp-tabbar class="moto-tabbar" list="{{tabbarItems}}" bindchange="tabChange"></mp-tabbar> -->
+  <scroll-view scroll-y class="scroll-view">
+    <view class="content-container">
+      <view wx:if="{{isLoaded && motoList.length === 0}}" class="empty-state">
+        <text class="empty-state-title">还没有车辆</text>
+        <text class="empty-state-desc">添加车辆后即可开始记录油耗</text>
+      </view>
+      <button
+        class="moto-item"
+        hover-class="moto-item--pressed"
+        wx:for="{{motoList}}"
+        wx:key="id"
+        aria-label="查看{{item.motoName}}，车牌号{{item.motoLicensePlate}}的加油记录"
+        bindtap="navigateToFuelList"
+        data-moto-id="{{item.id}}"
+      >
+        <image
+          class="moto-item-photo"
+          src="{{item.motoPhotoUrl}}"
+          mode="aspectFill"
+          lazy-load
+          aria-hidden="true"
+        ></image>
+        <view class="moto-item-content">
+          <text class="moto-item-name">{{item.motoName}}</text>
+          <text class="moto-item-desc">车牌号：{{item.motoLicensePlate}}</text>
+        </view>
+      </button>
+    </view>
+  </scroll-view>
+  <view class="btn-add-area">
+    <button type="primary" class="btn-add-moto" bindtap="handleBtnAddTap">添加车辆</button>
+  </view>
 </view>

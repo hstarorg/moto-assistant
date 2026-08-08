@@ -1,2 +1,6 @@
-<!--pages/statistics.wxml-->
-<text>敬请期待</text>
+<view class="container">
+  <view class="empty-state">
+    <text class="empty-state-title">统计功能正在建设</text>
+    <text class="empty-state-desc">积累加油记录后，将在这里展示趋势数据</text>
+  </view>
+</view>

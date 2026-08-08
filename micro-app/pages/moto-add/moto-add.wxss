@@ -1,43 +1,126 @@
-/* pages/moto-add/moto-add.wxss */
-
 .form-moto {
-  width: 690rpx;
+  width: 100%;
+}
+
+.photo-field {
+  margin-bottom: 40rpx;
+  text-align: center;
+}
+
+.photo-picker {
+  width: 280rpx;
+  height: 280rpx;
+  padding: 0;
+  border: 2rpx dashed #8a9199;
+  border-radius: 16rpx;
+  background: #fff;
+  box-sizing: border-box;
+  line-height: normal;
+}
+
+.photo-picker::after {
+  border: 0;
+}
+
+.photo-picker--pressed {
+  background: #eef7f1;
+  opacity: 0.85;
 }
 
 .moto-photo {
-  width: 256rpx;
-  height: 256rpx;
-  border: 1px solid #ccc;
-  margin: 0 auto;
-  margin-bottom: 50rpx;
+  width: 100%;
+  height: 100%;
+  border-radius: 14rpx;
+}
+
+.photo-placeholder {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24rpx;
+  box-sizing: border-box;
+}
+
+.photo-placeholder-title {
+  color: #1f2329;
+  font-size: 30rpx;
+  font-weight: 600;
+}
+
+.photo-placeholder-desc {
+  margin-top: 16rpx;
+  color: #606770;
+  font-size: 24rpx;
+  line-height: 1.5;
+}
+
+.form-field {
+  margin-bottom: 16rpx;
 }
 
 .section {
   display: flex;
-}
-
-.form-label {
-  width: 160rpx;
-  font-size: 28rpx;
-  line-height: 84rpx;
-}
-
-input[name=input], .date-picker {
-  font-size: 28rpx;
-  flex: 1;
-  height: 84rpx;
-}
-
-.btn-area {
-  margin-top: 15rpx;
-}
-
-.btn-area button {
-  font-size: 32rpx;
+  align-items: center;
 }
 
 .form-item {
-  border-bottom: 1px solid #eee;
+  min-height: 88rpx;
+  border-bottom: 1rpx solid #dfe3e8;
+}
+
+.form-label {
+  width: 176rpx;
+  flex: none;
+  color: #30343b;
+  font-size: 28rpx;
+  line-height: 1.4;
+}
+
+.required {
+  margin-right: 6rpx;
+  color: #c5221f;
+}
+
+input[name],
+.date-picker {
+  height: 88rpx;
+  flex: 1;
+  font-size: 30rpx;
+  line-height: 88rpx;
+}
+
+.date-picker-text {
+  line-height: 88rpx;
+}
+
+.placeholder {
+  color: #80868b;
+}
+
+.form-error {
+  display: block;
+  min-height: 40rpx;
+  padding: 8rpx 0 0 176rpx;
+  color: #c5221f;
+  font-size: 24rpx;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.photo-field > .form-error {
+  padding-left: 0;
+  text-align: center;
+}
+
+.btn-area {
+  margin-top: 32rpx;
+}
+
+.btn-area button {
+  min-height: 88rpx;
+  font-size: 32rpx;
 }
 
 .privacy-mask {
@@ -50,11 +133,16 @@ input[name=input], .date-picker {
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 30rpx;
+  padding-bottom: calc(30rpx + constant(safe-area-inset-bottom));
+  padding-bottom: calc(30rpx + env(safe-area-inset-bottom));
   background: rgba(0, 0, 0, 0.5);
+  box-sizing: border-box;
 }
 
 .privacy-dialog {
-  width: 600rpx;
+  width: 100%;
+  max-width: 600rpx;
   padding: 40rpx;
   border-radius: 16rpx;
   background: #fff;
@@ -70,21 +158,33 @@ input[name=input], .date-picker {
 }
 
 .privacy-content {
-  color: #555;
+  color: #3c4043;
   font-size: 28rpx;
   line-height: 1.7;
 }
 
-.privacy-link {
-  color: #07c160;
+.privacy-contract-button {
+  min-height: 88rpx;
+  margin-top: 16rpx;
+  padding: 0;
+  background: transparent;
+  color: #057a3f;
+  font-size: 28rpx;
+  line-height: 88rpx;
+  text-decoration: underline;
+}
+
+.privacy-contract-button::after {
+  border: 0;
 }
 
 .privacy-actions {
   display: flex;
-  margin-top: 36rpx;
+  margin: 36rpx -8rpx 0;
 }
 
 .privacy-actions button {
+  min-height: 88rpx;
   flex: 1;
   margin: 0 8rpx;
   font-size: 28rpx;

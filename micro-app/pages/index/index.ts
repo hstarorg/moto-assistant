@@ -5,6 +5,7 @@ const app = getApp<MotoAppOptions>();
 
 Page({
   data: {
+    isLoaded: false,
     motoList: [] as Moto[]
   },
 
@@ -44,6 +45,9 @@ Page({
       .then(({ data }) => {
         this.setData({ motoList: data });
       })
-      .catch(() => undefined);
+      .catch(() => undefined)
+      .finally(() => {
+        this.setData({ isLoaded: true });
+      });
   }
 });
