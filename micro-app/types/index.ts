@@ -2,13 +2,16 @@ export interface AccountTokenResponse {
   token: string;
 }
 
+export type LoginStatus = 'loggingIn' | 'ready' | 'failed';
+
 export interface MotoAppGlobalData {
+  loginStatus: LoginStatus;
   token?: string;
 }
 
 export interface MotoAppOptions {
   globalData: MotoAppGlobalData;
-  loginReadyCallback?: () => void;
+  loginStateChangedCallback?: (status: LoginStatus) => void;
   doLogin(): Promise<void>;
 }
 

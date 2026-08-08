@@ -1,5 +1,27 @@
 <view class="container">
-  <scroll-view scroll-y class="scroll-view">
+  <view wx:if="{{loginStatus !== 'ready'}}" class="login-state">
+    <block wx:if="{{!hasLoginFailed}}">
+      <text class="login-state-title">正在加载...</text>
+      <text class="login-state-desc">正在连接服务，请稍候</text>
+    </block>
+    <block wx:else>
+      <view aria-role="alert">
+        <text class="login-state-title">暂时无法加载</text>
+        <text class="login-state-desc">服务暂时不可用，请稍后重试。</text>
+      </view>
+      <button
+        type="primary"
+        class="btn-login-retry"
+        loading="{{loginStatus === 'loggingIn'}}"
+        disabled="{{loginStatus === 'loggingIn'}}"
+        bindtap="handleLoginRetry"
+      >
+        {{loginStatus === 'loggingIn' ? '正在加载' : '重试'}}
+      </button>
+    </block>
+  </view>
+
+  <scroll-view wx:else scroll-y class="scroll-view">
     <view class="content-container">
       <view wx:if="{{isLoaded && motoList.length === 0}}" class="empty-state">
         <text class="empty-state-title">还没有车辆</text>
@@ -28,7 +50,7 @@
       </button>
     </view>
   </scroll-view>
-  <view class="btn-add-area">
+  <view wx:if="{{loginStatus === 'ready'}}" class="btn-add-area">
     <button type="primary" class="btn-add-moto" bindtap="handleBtnAddTap">添加车辆</button>
   </view>
 </view>

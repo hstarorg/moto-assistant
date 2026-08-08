@@ -1,5 +1,4 @@
 import ajax = require('./utils/ajax');
-import messageBox = require('./utils/messageBox');
 import type { AccountTokenResponse, MotoAppOptions } from './types';
 
 let loginPromise: Promise<void> | undefined;
@@ -27,9 +26,7 @@ App<MotoAppOptions>({
       this.globalData.token = undefined;
       return this.doLogin();
     });
-    void this.doLogin().catch(() => {
-      messageBox.toast('登录失败，请稍后重试');
-    });
+    void this.doLogin().catch(() => undefined);
   },
 
   doLogin() {
@@ -37,20 +34,29 @@ App<MotoAppOptions>({
       return loginPromise;
     }
 
+    this.globalData.loginStatus = 'loggingIn';
+    this.globalData.token = undefined;
+    ajax.setToken();
+    this.loginStateChangedCallback?.('loggingIn');
+
     loginPromise = getLoginCode()
       .then(code =>
         ajax.post<AccountTokenResponse>(
           '/account/token',
           { code },
-          { auth: false, showError: false }
+          { auth: false, showError: false, showLoading: false }
         )
       )
       .then(({ data }) => {
         this.globalData.token = data.token;
+        this.globalData.loginStatus = 'ready';
         ajax.setToken(data.token);
-        const callback = this.loginReadyCallback;
-        this.loginReadyCallback = undefined;
-        callback?.();
+        this.loginStateChangedCallback?.('ready');
+      })
+      .catch(error => {
+        this.globalData.loginStatus = 'failed';
+        this.loginStateChangedCallback?.('failed');
+        throw error;
       })
       .finally(() => {
         loginPromise = undefined;
@@ -59,5 +65,7 @@ App<MotoAppOptions>({
     return loginPromise;
   },
 
-  globalData: {}
+  globalData: {
+    loginStatus: 'loggingIn'
+  }
 });
