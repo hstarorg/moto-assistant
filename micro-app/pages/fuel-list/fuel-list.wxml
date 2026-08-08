@@ -34,7 +34,7 @@
       </view>
       <view class="text-block">
         本次油价：
-        <text>￥{{item.uitlPrice}}元/L</text>
+        <text>￥{{item.unitPrice}}元/L</text>
       </view>
       <view class="text-block">
         加油量：
@@ -63,7 +63,7 @@
           </view>
           <view class="section form-item">
             <text class="form-label">当前油价：</text>
-            <input type="digit" name="input" placeholder="请输入今日油价" value="{{fuelModel.uitlPrice}}" bindinput="updateUitlPrice" />
+            <input type="digit" name="input" placeholder="请输入今日油价" value="{{fuelModel.unitPrice}}" bindinput="updateUnitPrice" />
           </view>
           <view class="section form-item">
             <text class="form-label">消费金额：</text>

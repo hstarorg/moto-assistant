@@ -18,13 +18,14 @@ Page({
     statisticsData: {
       totalMileage: 0,
       totalAmount: 0,
-      avgFuel: 0
+      avgFuel: 0,
+      avgPrice: 0
     } as StatisticsData,
     fuelModel: {
       refuelDate: '',
       currentMileage: '',
       refuelAmount: '',
-      uitlPrice: ''
+      unitPrice: ''
     } as FuelModel
   },
 
@@ -58,7 +59,7 @@ Page({
         currentMileage: record.currentMileage,
         refuelDate: util.formatTime(new Date(record.refuelDate), 'date'),
         refuelAmount: util.fixed2ForNum(record.refuelAmount),
-        uitlPrice: util.fixed2ForNum(record.uitlPrice),
+        unitPrice: util.fixed2ForNum(record.unitPrice),
         fuelCount: util.fixed2ForNum(record.fuelCount)
       }));
       this.setData({
@@ -72,8 +73,8 @@ Page({
     this._setInputData('fuelModel.currentMileage', event.detail.value);
   },
 
-  updateUitlPrice(event: WechatMiniprogram.Input) {
-    this._setInputData('fuelModel.uitlPrice', event.detail.value);
+  updateUnitPrice(event: WechatMiniprogram.Input) {
+    this._setInputData('fuelModel.unitPrice', event.detail.value);
   },
 
   updateRefuelAmount(event: WechatMiniprogram.Input) {
@@ -94,7 +95,7 @@ Page({
         refuelDate: util.formatTime(new Date(), 'date'),
         currentMileage: '',
         refuelAmount: '',
-        uitlPrice: ''
+        unitPrice: ''
       },
       addModalVisible: true
     });
@@ -111,7 +112,7 @@ Page({
       return messageBox.toast('请选择加油日期');
     } else if (!fuelModel.currentMileage) {
       return messageBox.toast('请输入当前里程');
-    } else if (!fuelModel.uitlPrice) {
+    } else if (!fuelModel.unitPrice) {
       return messageBox.toast('请输入当日油价');
     } else if (!fuelModel.refuelAmount) {
       return messageBox.toast('请输入加油总额');

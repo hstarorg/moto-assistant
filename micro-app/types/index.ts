@@ -32,16 +32,19 @@ export interface FuelModel {
   refuelDate: string;
   currentMileage: string;
   refuelAmount: string;
-  uitlPrice: string;
+  unitPrice: string;
 }
 
 export interface FuelRecord {
+  createdAt: string;
   id: number;
+  motoId: number;
   currentMileage: number;
-  refuelDate: number;
+  refuelDate: string;
   refuelAmount: number;
-  uitlPrice: number;
+  unitPrice: number;
   fuelCount: number;
+  updatedAt: string;
 }
 
 export interface FuelRecordView {
@@ -49,15 +52,15 @@ export interface FuelRecordView {
   currentMileage: number;
   refuelDate: string;
   refuelAmount: string;
-  uitlPrice: string;
+  unitPrice: string;
   fuelCount: string;
 }
 
 export interface StatisticsData {
-  totalMileage: number | string;
-  totalAmount: number | string;
-  avgFuel: number | string;
-  avgPrice?: number | string;
+  totalMileage: number;
+  totalAmount: number;
+  avgFuel: number;
+  avgPrice: number;
 }
 
 export interface FuelListResponse {
