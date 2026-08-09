@@ -41,6 +41,7 @@ const EMPTY_SUMMARY: StatisticsSummaryView = {
 };
 
 const app = getApp<MotoAppOptions>();
+let unsubscribeLoginState: (() => void) | undefined;
 
 const fixed = (value: number, digits = 2): string => value.toFixed(digits);
 
@@ -70,7 +71,7 @@ const toMotoStatisticsView = ({
     avgFuelText: hasStatistics ? fixed(statisticsData.avgFuel) : '--',
     avgPriceText: hasStatistics ? fixed(statisticsData.avgPrice) : '--',
     currentMileageText:
-      fuelList.length > 0 ? fixed(statisticsData.totalMileage, 1) : '--',
+      fuelList.length > 0 ? fixed(statisticsData.currentMileage, 1) : '--',
     hasStatistics,
     id: moto.id,
     loadFailed: false,
@@ -131,7 +132,8 @@ Page({
   },
 
   onLoad() {
-    app.loginStateChangedCallback = status => {
+    unsubscribeLoginState?.();
+    unsubscribeLoginState = app.subscribeLoginState(status => {
       this.setData({
         hasLoginFailed:
           status === 'failed' ||
@@ -141,7 +143,7 @@ Page({
       if (status === 'ready') {
         this._loadStatistics();
       }
-    };
+    });
 
     const loginStatus = app.globalData.loginStatus;
     this.setData({
@@ -157,7 +159,8 @@ Page({
   },
 
   onUnload() {
-    app.loginStateChangedCallback = undefined;
+    unsubscribeLoginState?.();
+    unsubscribeLoginState = undefined;
   },
 
   handleLoginRetry() {

@@ -2,18 +2,21 @@ import ajax = require('../../utils/ajax');
 import type { LoginStatus, Moto, MotoAppOptions } from '../../types';
 
 const app = getApp<MotoAppOptions>();
+let unsubscribeLoginState: (() => void) | undefined;
 
 Page({
   data: {
     hasLoginFailed: false,
     isLoaded: false,
     isLoadingMotos: false,
+    loadFailed: false,
     loginStatus: 'loggingIn' as LoginStatus,
     motoList: [] as Moto[]
   },
 
   onLoad() {
-    app.loginStateChangedCallback = status => {
+    unsubscribeLoginState?.();
+    unsubscribeLoginState = app.subscribeLoginState(status => {
       this.setData({
         hasLoginFailed:
           status === 'failed' ||
@@ -23,7 +26,7 @@ Page({
       if (status === 'ready') {
         this._loadUserMotoList();
       }
-    };
+    });
 
     const loginStatus = app.globalData.loginStatus;
     this.setData({
@@ -36,7 +39,8 @@ Page({
   },
 
   onUnload() {
-    app.loginStateChangedCallback = undefined;
+    unsubscribeLoginState?.();
+    unsubscribeLoginState = undefined;
   },
 
   handleLoginRetry() {
@@ -47,6 +51,10 @@ Page({
     wx.navigateTo({
       url: '../moto-add/moto-add'
     });
+  },
+
+  handleDataRetry() {
+    this._loadUserMotoList();
   },
 
   navigateToFuelList(
@@ -70,9 +78,11 @@ Page({
     ajax
       .get<Moto[]>('/motos')
       .then(({ data }) => {
-        this.setData({ motoList: data });
+        this.setData({ loadFailed: false, motoList: data });
       })
-      .catch(() => undefined)
+      .catch(() => {
+        this.setData({ loadFailed: true });
+      })
       .finally(() => {
         this.setData({ isLoaded: true, isLoadingMotos: false });
       });

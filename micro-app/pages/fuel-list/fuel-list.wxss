@@ -42,6 +42,41 @@
   font-size: 28rpx;
 }
 
+.fuel-item-header {
+  min-height: 88rpx;
+  display: flex;
+  align-items: center;
+  margin-bottom: 4rpx;
+}
+
+.fuel-item-date {
+  min-width: 0;
+  flex: 1;
+  color: #1f2329;
+  font-size: 30rpx;
+  font-weight: 600;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+
+.fuel-item-edit {
+  width: 112rpx;
+  flex: none;
+  margin-right: -12rpx;
+  margin-left: 16rpx;
+}
+
+.fuel-item-updated {
+  display: block;
+  margin-top: 16rpx;
+  padding-top: 14rpx;
+  border-top: 1rpx solid #edf0f2;
+  color: #6b727c;
+  font-size: 24rpx;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+
 .text-block {
   display: inline-block;
   width: 50%;

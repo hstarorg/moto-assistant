@@ -11,7 +11,17 @@
   <scroll-view scroll-y class="scroll-view">
     <view class="content-container">
       <page-shell
-        wx:if="{{isLoaded && motoList.length === 0}}"
+        wx:if="{{isLoaded && loadFailed}}"
+        state="error"
+        state-size="compact"
+        title="车辆加载失败"
+        description="请检查网络后重新加载。"
+        action-label="重新加载"
+        action-loading="{{isLoadingMotos}}"
+        bindaction="handleDataRetry"
+      ></page-shell>
+      <page-shell
+        wx:elif="{{isLoaded && motoList.length === 0}}"
         state="empty"
         state-size="compact"
         title="还没有车辆"
@@ -19,35 +29,37 @@
         action-label="添加车辆"
         bindaction="handleBtnAddTap"
       ></page-shell>
-      <button
-        class="moto-item"
-        hover-class="moto-item--pressed"
-        wx:for="{{motoList}}"
-        wx:key="id"
-        aria-label="查看{{item.motoName}}，车牌号{{item.motoLicensePlate}}的加油记录"
-        bindtap="navigateToFuelList"
-        data-moto-id="{{item.id}}"
-      >
-        <image
-          class="moto-item-photo"
-          src="{{item.motoPhotoUrl}}"
-          mode="aspectFill"
-          lazy-load
-          aria-hidden="true"
-        ></image>
-        <view class="moto-item-content">
-          <text class="moto-item-name">{{item.motoName}}</text>
-          <text class="moto-item-desc">车牌号：{{item.motoLicensePlate}}</text>
+      <block wx:else>
+        <button
+          class="moto-item"
+          hover-class="moto-item--pressed"
+          wx:for="{{motoList}}"
+          wx:key="id"
+          aria-label="查看{{item.motoName}}，车牌号{{item.motoLicensePlate}}的加油记录"
+          bindtap="navigateToFuelList"
+          data-moto-id="{{item.id}}"
+        >
+          <image
+            class="moto-item-photo"
+            src="{{item.motoPhotoUrl}}"
+            mode="aspectFill"
+            lazy-load
+            aria-hidden="true"
+          ></image>
+          <view class="moto-item-content">
+            <text class="moto-item-name">{{item.motoName}}</text>
+            <text class="moto-item-desc">车牌号：{{item.motoLicensePlate}}</text>
+          </view>
+        </button>
+        <view wx:if="{{isLoaded && motoList.length > 0}}" class="btn-add-area">
+          <action-button
+            class="btn-add-moto"
+            variant="secondary"
+            label="添加车辆"
+            bindtap="handleBtnAddTap"
+          ></action-button>
         </view>
-      </button>
-      <view wx:if="{{isLoaded && motoList.length > 0}}" class="btn-add-area">
-        <action-button
-          class="btn-add-moto"
-          variant="secondary"
-          label="添加车辆"
-          bindtap="handleBtnAddTap"
-        ></action-button>
-      </view>
+      </block>
     </view>
   </scroll-view>
 </page-shell>
