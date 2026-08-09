@@ -16,6 +16,8 @@
         state-size="compact"
         title="还没有车辆"
         description="添加车辆后即可开始记录油耗"
+        action-label="添加车辆"
+        bindaction="handleBtnAddTap"
       ></page-shell>
       <button
         class="moto-item"
@@ -38,13 +40,14 @@
           <text class="moto-item-desc">车牌号：{{item.motoLicensePlate}}</text>
         </view>
       </button>
+      <view wx:if="{{isLoaded && motoList.length > 0}}" class="btn-add-area">
+        <action-button
+          class="btn-add-moto"
+          variant="secondary"
+          label="添加车辆"
+          bindtap="handleBtnAddTap"
+        ></action-button>
+      </view>
     </view>
   </scroll-view>
-  <view wx:if="{{loginStatus === 'ready'}}" class="btn-add-area">
-    <action-button
-      class="btn-add-moto"
-      label="添加车辆"
-      bindtap="handleBtnAddTap"
-    ></action-button>
-  </view>
 </page-shell>

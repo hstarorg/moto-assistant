@@ -46,7 +46,8 @@ Page({
       unitPrice: ''
     } as FuelModel,
     fuelErrors: createEmptyFuelErrors(),
-    isSubmitting: false
+    isSubmitting: false,
+    keyboardHeight: 0
   },
 
   onLoad(options) {
@@ -93,6 +94,14 @@ Page({
     this._setInputData('fuelModel.refuelDate', event.detail.value as string);
   },
 
+  handleKeyboardHeightChange(event: WechatMiniprogram.CustomEvent) {
+    const detail = event.detail as { height?: number };
+    const keyboardHeight = Math.max(0, detail.height || 0);
+    if (keyboardHeight !== this.data.keyboardHeight) {
+      this.setData({ keyboardHeight });
+    }
+  },
+
   _setInputData(key: FuelModelPath, value: string) {
     const field = key.slice('fuelModel.'.length) as keyof FuelModel;
     this.setData({
@@ -110,7 +119,8 @@ Page({
         unitPrice: ''
       },
       fuelErrors: createEmptyFuelErrors(),
-      addModalVisible: true
+      addModalVisible: true,
+      keyboardHeight: 0
     });
   },
 
@@ -118,7 +128,7 @@ Page({
     if (this.data.isSubmitting) {
       return;
     }
-    this.setData({ addModalVisible: false });
+    this.setData({ addModalVisible: false, keyboardHeight: 0 });
   },
 
   handleAddFuelRecord() {
@@ -153,7 +163,7 @@ Page({
         fuelModel as unknown as WechatMiniprogram.IAnyObject
       )
       .then(() => {
-        this.setData({ addModalVisible: false });
+        this.setData({ addModalVisible: false, keyboardHeight: 0 });
         this._loadFuelList();
       })
       .catch(() => undefined)

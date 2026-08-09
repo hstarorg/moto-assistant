@@ -36,6 +36,7 @@
     <view class="popup-view-mask" bindtap="cancelFuelAdd"></view>
     <form
       class="popup-view-panel"
+      style="max-height: calc(100% - {{keyboardHeight}}px);"
       aria-role="dialog"
       aria-label="添加加油记录"
       bindsubmit="handleAddFuelRecord"
@@ -74,8 +75,10 @@
             placeholder="请输入当前行驶里程"
             value="{{fuelModel.currentMileage}}"
             confirm-type="next"
+            adjust-position="{{false}}"
             aria-label="当前里程，必填"
             bindinput="updateCurrentMileage"
+            bindkeyboardheightchange="handleKeyboardHeightChange"
           />
         </form-field>
 
@@ -94,8 +97,10 @@
             placeholder="请输入今日油价"
             value="{{fuelModel.unitPrice}}"
             confirm-type="next"
+            adjust-position="{{false}}"
             aria-label="当前油价，必填"
             bindinput="updateUnitPrice"
+            bindkeyboardheightchange="handleKeyboardHeightChange"
           />
         </form-field>
 
@@ -114,8 +119,10 @@
             placeholder="请输入加油总金额"
             value="{{fuelModel.refuelAmount}}"
             confirm-type="done"
+            adjust-position="{{false}}"
             aria-label="消费金额，必填"
             bindinput="updateRefuelAmount"
+            bindkeyboardheightchange="handleKeyboardHeightChange"
           />
         </form-field>
       </view>
