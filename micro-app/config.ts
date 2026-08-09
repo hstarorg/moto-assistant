@@ -9,10 +9,10 @@ const environments: Record<EnvVersion, EnvironmentConfig> = {
     apiBaseUrl: 'https://jay-local-mac.hstar.org/api/v1',
   },
   trial: {
-    apiBaseUrl: 'https://apis.hstar.vip/moto/api/v1',
+    apiBaseUrl: 'https://apis.hstar.org/moto/api/v1',
   },
   release: {
-    apiBaseUrl: 'https://apis.hstar.vip/moto/api/v1',
+    apiBaseUrl: 'https://apis.hstar.org/moto/api/v1',
   },
 };
 
