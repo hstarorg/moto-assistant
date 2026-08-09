@@ -39,12 +39,11 @@ pnpm test:e2e
 
 ```sh
 docker build -t moto-assistant-backend .
-docker run --rm --env-file /path/to/backend.env moto-assistant-backend node node_modules/typeorm/cli.js migration:run -d dist/database/data-source-for-migrations.js
 docker run -d --restart unless-stopped --env-file /path/to/backend.env -p 7410:7410 moto-assistant-backend
 ```
 
 生产配置通过镜像外部的环境变量文件提供，数据库地址必须能从容器内部访问。
 
 GitHub Actions 的 `Backend image` workflow 只能手动运行。输入 `x.y.z` 版本号后，
-流程会向 `ghcr.io/hstarorg/moto-assistant-backend` 推送版本镜像和 `latest`，创建
-`vx.y.z` Git 标签，并自动生成 GitHub Release。
+流程会向 `ghcr.io/hstarorg/moto-assistant-backend` 推送 `x.y.z` 和 `latest` 两个镜像
+标签，创建 `vx.y.z` Git 标签，并自动生成 GitHub Release。
