@@ -7,6 +7,7 @@ export interface AccountTokenResponse {
 export interface FuelStatisticsResponse {
   avgFuel: number;
   avgPrice: number;
+  currentMileage: number;
   totalAmount: number;
   totalMileage: number;
 }

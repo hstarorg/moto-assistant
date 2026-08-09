@@ -20,3 +20,5 @@ export class CreateFuelRecordDto {
   @Min(0.01)
   unitPrice!: number;
 }
+
+export class UpdateFuelRecordDto extends CreateFuelRecordDto {}

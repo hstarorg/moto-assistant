@@ -1,9 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { LessThan, Repository } from 'typeorm';
+import { Not, Repository } from 'typeorm';
 import { MotoStatus } from '../constants';
 import { FuelRecordEntity, MotoEntity } from '../database';
-import { CreateFuelRecordDto } from '../dto/create-fuel-record.dto';
+import {
+  CreateFuelRecordDto,
+  UpdateFuelRecordDto,
+} from '../dto/fuel-record.dto';
 import type {
   FuelListResponse,
   FuelRecordResponse,
@@ -40,14 +43,43 @@ export class FuelService {
   async findByMoto(ownerId: number, motoId: number): Promise<FuelListResponse> {
     await this.assertOwnedMoto(ownerId, motoId);
     const fuelRecords = await this.fuelRecords.find({
-      order: { id: 'DESC' },
+      order: { refuelDate: 'DESC', id: 'DESC' },
       where: { motoId },
     });
 
     return {
       fuelList: fuelRecords.map((record) => this.toResponse(record)),
-      statisticsData: await this.getStatistics(motoId, fuelRecords[0]),
+      statisticsData: await this.getStatistics(
+        motoId,
+        fuelRecords[0],
+        fuelRecords.at(-1),
+      ),
     };
+  }
+
+  async update(
+    ownerId: number,
+    motoId: number,
+    fuelId: number,
+    dto: UpdateFuelRecordDto,
+  ): Promise<FuelRecordResponse> {
+    await this.assertOwnedMoto(ownerId, motoId);
+    const fuelRecord = await this.fuelRecords.findOneBy({
+      id: fuelId,
+      motoId,
+    });
+    if (!fuelRecord) {
+      throw new NotFoundException('加油记录不存在');
+    }
+
+    const fuelCount = dto.refuelAmount / dto.unitPrice;
+    fuelRecord.currentMileage = dto.currentMileage.toFixed(1);
+    fuelRecord.fuelCount = fuelCount.toFixed(4);
+    fuelRecord.refuelAmount = dto.refuelAmount.toFixed(2);
+    fuelRecord.refuelDate = new Date(dto.refuelDate);
+    fuelRecord.unitPrice = dto.unitPrice.toFixed(4);
+
+    return this.toResponse(await this.fuelRecords.save(fuelRecord));
   }
 
   private async assertOwnedMoto(
@@ -66,10 +98,17 @@ export class FuelService {
 
   private async getStatistics(
     motoId: number,
-    lastFuel?: FuelRecordEntity,
+    latestFuel?: FuelRecordEntity,
+    earliestFuel?: FuelRecordEntity,
   ): Promise<FuelStatisticsResponse> {
-    if (!lastFuel) {
-      return { avgFuel: 0, avgPrice: 0, totalAmount: 0, totalMileage: 0 };
+    if (!latestFuel || !earliestFuel) {
+      return {
+        avgFuel: 0,
+        avgPrice: 0,
+        currentMileage: 0,
+        totalAmount: 0,
+        totalMileage: 0,
+      };
     }
 
     // Keep this aggregate in PostgreSQL. Repository.sum only accepts entity
@@ -78,12 +117,16 @@ export class FuelService {
       .createQueryBuilder('fuel')
       .select('SUM(fuel.refuelAmount)', 'totalAmount')
       .addSelect('SUM(fuel.fuelCount)', 'totalFuel')
-      .where({ motoId, id: LessThan(lastFuel.id) })
+      .where({ motoId, id: Not(latestFuel.id) })
       .getRawOne<{ totalAmount: string | null; totalFuel: string | null }>();
 
     const totalAmount = Number(result?.totalAmount ?? 0);
     const totalFuel = Number(result?.totalFuel ?? 0);
-    const totalMileage = Number(lastFuel.currentMileage);
+    const currentMileage = Number(latestFuel.currentMileage);
+    const totalMileage = Math.max(
+      currentMileage - Number(earliestFuel.currentMileage),
+      0,
+    );
     return {
       avgFuel:
         totalMileage > 0
@@ -91,6 +134,7 @@ export class FuelService {
           : 0,
       avgPrice:
         totalMileage > 0 ? Number((totalAmount / totalMileage).toFixed(2)) : 0,
+      currentMileage,
       totalAmount,
       totalMileage,
     };

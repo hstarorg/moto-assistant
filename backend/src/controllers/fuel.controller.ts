@@ -7,10 +7,14 @@ import {
   Param,
   ParseIntPipe,
   Post,
+  Put,
   UseGuards,
 } from '@nestjs/common';
 import { type AuthenticatedUser, CurrentUser, TokenAuthGuard } from '../common';
-import { CreateFuelRecordDto } from '../dto/create-fuel-record.dto';
+import {
+  CreateFuelRecordDto,
+  UpdateFuelRecordDto,
+} from '../dto/fuel-record.dto';
 import { FuelService } from '../services';
 
 @Controller('motos/:motoId/fuel')
@@ -34,5 +38,15 @@ export class FuelController {
     @Body() dto: CreateFuelRecordDto,
   ) {
     return this.fuelService.create(user.id, motoId, dto);
+  }
+
+  @Put(':fuelId')
+  update(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('motoId', ParseIntPipe) motoId: number,
+    @Param('fuelId', ParseIntPipe) fuelId: number,
+    @Body() dto: UpdateFuelRecordDto,
+  ) {
+    return this.fuelService.update(user.id, motoId, fuelId, dto);
   }
 }
