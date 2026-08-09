@@ -6,6 +6,7 @@
     "pages/about/about",
     "pages/statistics/statistics"
   ],
+  "lazyCodeLoading": "requiredComponents",
   "usingComponents": {
     "action-button": "/components/action-button/action-button",
     "page-shell": "/components/page-shell/page-shell",

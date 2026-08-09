@@ -1,13 +1,11 @@
-@import '/miniprogram_npm/weui-miniprogram/weui-wxss/dist/style/weui.wxss';
-
 page {
   height: 100%;
 }
 
 .page {
   min-height: 100%;
-  background-color: var(--weui-BG-1);
-  color: var(--weui-FG-0);
+  background-color: var(--weui-BG-1, #f7f8fa);
+  color: var(--weui-FG-0, #1f2329);
   font-size: 16px;
   font-family: -apple-system-font, Helvetica Neue, Helvetica, sans-serif
 }
@@ -19,7 +17,7 @@ image {
 
 .link {
   display: inline;
-  color: var(--weui-LINK)
+  color: var(--weui-LINK, #16794a)
 }
 
 .fadeIn {
@@ -110,7 +108,7 @@ image {
 
 .page__desc {
   margin-top: 5px;
-  color: var(--weui-FG-1);
+  color: var(--weui-FG-1, #606770);
   text-align: left;
   font-size: 14px
 }
