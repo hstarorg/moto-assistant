@@ -35,15 +35,20 @@ pnpm test:e2e
 
 该测试会在 `DATABASE_URL` 指向的数据库中新增测试数据，只能连接开发数据库。
 
-## 容器部署
+## 生产部署
+
+前置条件是已有容器可以访问的 PostgreSQL 数据库。部署前在服务器环境中配置：
+
+- `DATABASE_URL`：PostgreSQL 连接字符串
+- `WECHAT_CONFIG`：`appId|appSecret`
+- `R2_CONFIG`：`accountId|accessKeyId|secretAccessKey|bucket|keyPrefix`
+
+拉取指定版本镜像、执行 migration 并启动服务（也可将 `latest` 替换为实际版本号）：
 
 ```sh
-docker build -t moto-assistant-backend .
-docker run -d --restart unless-stopped --env-file /path/to/backend.env -p 7410:7410 moto-assistant-backend
+docker pull ghcr.io/hstarorg/moto-assistant-backend:latest
+
+docker run -d --name moto-assistant-backend --restart unless-stopped -e DATABASE_URL -e WECHAT_CONFIG -e R2_CONFIG -p 7410:7410 ghcr.io/hstarorg/moto-assistant-backend:latest
 ```
 
-生产配置通过镜像外部的环境变量文件提供，数据库地址必须能从容器内部访问。
-
-GitHub Actions 的 `Backend image` workflow 只能手动运行。输入 `x.y.z` 版本号后，
-流程会向 `ghcr.io/hstarorg/moto-assistant-backend` 推送 `x.y.z` 和 `latest` 两个镜像
-标签，创建 `vx.y.z` Git 标签，并自动生成 GitHub Release。
+服务启动后可通过 `/api/v1/health` 检查状态。
