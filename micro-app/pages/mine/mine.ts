@@ -1,7 +1,4 @@
 import messageBox = require('../../utils/messageBox');
-import type { MotoAppOptions } from '../../types';
-
-const app = getApp<MotoAppOptions>();
 
 const getVersionText = (): string => {
   try {
@@ -22,13 +19,9 @@ Page({
   },
 
   navigateToArchivedMotos() {
-    app.globalData.pendingMotoStatus = 'archived';
-    wx.switchTab({
-      url: '/pages/index/index',
+    wx.navigateTo({
+      url: '../moto-archived/moto-archived',
       fail() {
-        if (app.globalData.pendingMotoStatus === 'archived') {
-          delete app.globalData.pendingMotoStatus;
-        }
         messageBox.toast('暂时无法打开已归档车辆');
       }
     });

@@ -3,6 +3,7 @@
     "pages/index/index",
     "pages/moto-add/moto-add",
     "pages/fuel-list/fuel-list",
+    "pages/moto-archived/moto-archived",
     "pages/mine/mine",
     "pages/about/about",
     "pages/statistics/statistics"

@@ -3,6 +3,12 @@
   box-sizing: border-box;
 }
 
+.scroll-view {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+
 .moto-item {
   width: 100%;
   margin-bottom: 20rpx;
@@ -14,27 +20,12 @@
 }
 
 .moto-item-main {
-  width: 100%;
   min-height: 168rpx;
   display: flex;
   align-items: center;
-  margin: 0;
   padding: 20rpx;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
   box-sizing: border-box;
-  color: inherit;
-  line-height: normal;
-  text-align: left;
-}
-
-.moto-item-main::after {
-  border: 0;
-}
-
-.moto-item-main--pressed {
-  background: #eef7f1;
+  opacity: 0.82;
 }
 
 .moto-item-photo {
@@ -81,29 +72,10 @@
   width: 200rpx;
 }
 
-.scroll-view {
-  width: 100%;
-  height: 100%;
-  box-sizing: border-box;
-}
-
-.btn-add-area {
-  padding: 12rpx 0 8rpx;
-}
-
-.btn-add-moto {
-  width: 240rpx;
-  margin: 0 auto;
-}
-
 @media (prefers-color-scheme: dark) {
   .moto-item {
     border-color: #454a51;
     background: #242629;
-  }
-
-  .moto-item-main--pressed {
-    background: #253a30;
   }
 
   .moto-item-name {

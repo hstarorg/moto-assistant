@@ -1,4 +1,5 @@
 import ajax = require('../../utils/ajax');
+import messageBox = require('../../utils/messageBox');
 import type { LoginStatus, Moto, MotoAppOptions } from '../../types';
 
 const app = getApp<MotoAppOptions>();
@@ -11,7 +12,8 @@ Page({
     isLoadingMotos: false,
     loadFailed: false,
     loginStatus: 'loggingIn' as LoginStatus,
-    motoList: [] as Moto[]
+    motoList: [] as Moto[],
+    restoringMotoId: 0
   },
 
   onLoad() {
@@ -24,7 +26,7 @@ Page({
         loginStatus: status
       });
       if (status === 'ready') {
-        this._loadUserMotoList();
+        this._loadArchivedMotos();
       }
     });
 
@@ -34,13 +36,13 @@ Page({
       loginStatus
     });
     if (loginStatus === 'ready') {
-      this._loadUserMotoList();
+      this._loadArchivedMotos();
     }
   },
 
   onShow() {
     if (app.globalData.loginStatus === 'ready' && this.data.isLoaded) {
-      this._loadUserMotoList();
+      this._loadArchivedMotos();
     }
   },
 
@@ -53,15 +55,11 @@ Page({
     void app.doLogin().catch(() => undefined);
   },
 
-  handleBtnAddTap() {
-    wx.navigateTo({ url: '../moto-add/moto-add' });
-  },
-
   handleDataRetry() {
-    this._loadUserMotoList();
+    this._loadArchivedMotos();
   },
 
-  navigateToFuelList(
+  handleRestoreMoto(
     event: WechatMiniprogram.TouchEvent<
       WechatMiniprogram.IAnyObject,
       WechatMiniprogram.IAnyObject,
@@ -69,28 +67,33 @@ Page({
     >
   ) {
     const motoId = event.currentTarget.dataset.motoId;
-    wx.navigateTo({ url: `../fuel-list/fuel-list?motoId=${motoId}` });
+    if (this.data.restoringMotoId) {
+      return;
+    }
+
+    this.setData({ restoringMotoId: motoId });
+    void ajax
+      .post(`/motos/${motoId}/restore`, {}, { showLoading: false })
+      .then(() => {
+        messageBox.toast('车辆已恢复使用');
+        this.setData({
+          motoList: this.data.motoList.filter(moto => moto.id !== motoId)
+        });
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        this.setData({ restoringMotoId: 0 });
+      });
   },
 
-  navigateToMotoEdit(
-    event: WechatMiniprogram.TouchEvent<
-      WechatMiniprogram.IAnyObject,
-      WechatMiniprogram.IAnyObject,
-      { motoId: number }
-    >
-  ) {
-    const motoId = event.currentTarget.dataset.motoId;
-    wx.navigateTo({ url: `../moto-add/moto-add?motoId=${motoId}` });
-  },
-
-  _loadUserMotoList() {
+  _loadArchivedMotos() {
     if (this.data.isLoadingMotos) {
       return;
     }
 
     this.setData({ isLoadingMotos: true });
     ajax
-      .get<Moto[]>('/motos?status=active')
+      .get<Moto[]>('/motos?status=archived')
       .then(({ data }) => {
         this.setData({ loadFailed: false, motoList: data });
       })
