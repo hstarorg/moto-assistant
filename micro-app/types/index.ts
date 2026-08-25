@@ -76,6 +76,8 @@ export interface StatisticsData {
 }
 
 export interface FuelListResponse {
-  statisticsData: StatisticsData;
   fuelList: FuelRecord[];
+  nextCursor: string | null;
+  statisticsData: StatisticsData;
+  totalCount: number;
 }

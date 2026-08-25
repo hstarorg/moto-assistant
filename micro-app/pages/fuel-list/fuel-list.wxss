@@ -77,6 +77,25 @@
   font-variant-numeric: tabular-nums;
 }
 
+.load-more-state {
+  min-height: 96rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b727c;
+  font-size: 26rpx;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.load-more-action {
+  width: 360rpx;
+}
+
+.load-more-state--complete {
+  padding-bottom: 8rpx;
+}
+
 .text-block {
   display: inline-block;
   width: 50%;
@@ -155,6 +174,35 @@
   overflow-y: auto;
   padding: 20rpx 30rpx;
   -webkit-overflow-scrolling: touch;
+}
+
+.fuel-delete-section {
+  margin-top: 40rpx;
+  padding-top: 32rpx;
+  border-top: 1rpx solid #dfe3e8;
+}
+
+.fuel-delete-title,
+.fuel-delete-description {
+  display: block;
+}
+
+.fuel-delete-title {
+  color: #1f2329;
+  font-size: 30rpx;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.fuel-delete-description {
+  margin-top: 12rpx;
+  color: #606770;
+  font-size: 26rpx;
+  line-height: 1.65;
+}
+
+.fuel-delete-button {
+  margin-top: 24rpx;
 }
 
 .popup-view-footer {

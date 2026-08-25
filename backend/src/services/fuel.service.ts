@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -17,6 +18,7 @@ import { MotoStatus } from '../constants';
 import { FuelRecordEntity, MotoEntity } from '../database';
 import {
   CreateFuelRecordDto,
+  FuelListQueryDto,
   UpdateFuelRecordDto,
 } from '../dto/fuel-record.dto';
 import type {
@@ -24,6 +26,16 @@ import type {
   FuelRecordResponse,
   FuelStatisticsResponse,
 } from './service.types';
+
+interface FuelPageCursor {
+  id: number;
+  refuelDate: Date;
+}
+
+interface FuelStatisticsSummary {
+  statisticsData: FuelStatisticsResponse;
+  totalCount: number;
+}
 
 @Injectable()
 export class FuelService {
@@ -59,20 +71,42 @@ export class FuelService {
     });
   }
 
-  async findByMoto(ownerId: number, motoId: number): Promise<FuelListResponse> {
+  async findByMoto(
+    ownerId: number,
+    motoId: number,
+    query: FuelListQueryDto,
+  ): Promise<FuelListResponse> {
     await this.assertOwnedMoto(ownerId, motoId);
-    const fuelRecords = await this.fuelRecords.find({
-      order: { refuelDate: 'DESC', id: 'DESC' },
-      where: { motoId },
-    });
+    const cursor = query.cursor ? this.decodeCursor(query.cursor) : undefined;
+    const where: FindOptionsWhere<FuelRecordEntity>[] = cursor
+      ? [
+          { motoId, refuelDate: LessThan(cursor.refuelDate) },
+          {
+            id: LessThan(cursor.id),
+            motoId,
+            refuelDate: Equal(cursor.refuelDate),
+          },
+        ]
+      : [{ motoId }];
+    const [fuelRecords, summary] = await Promise.all([
+      this.fuelRecords.find({
+        order: { refuelDate: 'DESC', id: 'DESC' },
+        take: query.limit + 1,
+        where,
+      }),
+      this.getStatistics(motoId),
+    ]);
+    const hasMore = fuelRecords.length > query.limit;
+    const pageRecords = hasMore
+      ? fuelRecords.slice(0, query.limit)
+      : fuelRecords;
+    const lastRecord = pageRecords.at(-1);
 
     return {
-      fuelList: fuelRecords.map((record) => this.toResponse(record)),
-      statisticsData: await this.getStatistics(
-        motoId,
-        fuelRecords[0],
-        fuelRecords.at(-1),
-      ),
+      fuelList: pageRecords.map((record) => this.toResponse(record)),
+      nextCursor: hasMore && lastRecord ? this.encodeCursor(lastRecord) : null,
+      statisticsData: summary.statisticsData,
+      totalCount: summary.totalCount,
     };
   }
 
@@ -136,18 +170,28 @@ export class FuelService {
     }
   }
 
-  private async getStatistics(
-    motoId: number,
-    latestFuel?: FuelRecordEntity,
-    earliestFuel?: FuelRecordEntity,
-  ): Promise<FuelStatisticsResponse> {
+  private async getStatistics(motoId: number): Promise<FuelStatisticsSummary> {
+    const [latestFuel, earliestFuel, totalCount] = await Promise.all([
+      this.fuelRecords.findOne({
+        order: { refuelDate: 'DESC', id: 'DESC' },
+        where: { motoId },
+      }),
+      this.fuelRecords.findOne({
+        order: { refuelDate: 'ASC', id: 'ASC' },
+        where: { motoId },
+      }),
+      this.fuelRecords.countBy({ motoId }),
+    ]);
     if (!latestFuel || !earliestFuel) {
       return {
-        avgFuel: 0,
-        avgPrice: 0,
-        currentMileage: 0,
-        totalAmount: 0,
-        totalMileage: 0,
+        statisticsData: {
+          avgFuel: 0,
+          avgPrice: 0,
+          currentMileage: 0,
+          totalAmount: 0,
+          totalMileage: 0,
+        },
+        totalCount,
       };
     }
 
@@ -168,15 +212,20 @@ export class FuelService {
       0,
     );
     return {
-      avgFuel:
-        totalMileage > 0
-          ? Number(((totalFuel / totalMileage) * 100).toFixed(2))
-          : 0,
-      avgPrice:
-        totalMileage > 0 ? Number((totalAmount / totalMileage).toFixed(2)) : 0,
-      currentMileage,
-      totalAmount,
-      totalMileage,
+      statisticsData: {
+        avgFuel:
+          totalMileage > 0
+            ? Number(((totalFuel / totalMileage) * 100).toFixed(2))
+            : 0,
+        avgPrice:
+          totalMileage > 0
+            ? Number((totalAmount / totalMileage).toFixed(2))
+            : 0,
+        currentMileage,
+        totalAmount,
+        totalMileage,
+      },
+      totalCount,
     };
   }
 
@@ -264,6 +313,41 @@ export class FuelService {
 
   private describeMileage(record: FuelRecordEntity): string {
     return `${Number(record.currentMileage)} 公里（${record.refuelDate.toISOString().slice(0, 10)}）`;
+  }
+
+  private encodeCursor(record: FuelRecordEntity): string {
+    return Buffer.from(
+      JSON.stringify({
+        id: record.id,
+        refuelDate: record.refuelDate.toISOString(),
+      }),
+    ).toString('base64url');
+  }
+
+  private decodeCursor(value: string): FuelPageCursor {
+    try {
+      const parsed = JSON.parse(
+        Buffer.from(value, 'base64url').toString('utf8'),
+      ) as { id?: unknown; refuelDate?: unknown };
+      if (
+        !Number.isInteger(parsed.id) ||
+        (parsed.id as number) <= 0 ||
+        typeof parsed.refuelDate !== 'string'
+      ) {
+        throw new Error('invalid cursor payload');
+      }
+
+      const refuelDate = new Date(parsed.refuelDate);
+      if (
+        Number.isNaN(refuelDate.getTime()) ||
+        refuelDate.toISOString() !== parsed.refuelDate
+      ) {
+        throw new Error('invalid cursor date');
+      }
+      return { id: parsed.id as number, refuelDate };
+    } catch {
+      throw new BadRequestException('分页游标无效');
+    }
   }
 
   private toResponse(record: FuelRecordEntity): FuelRecordResponse {

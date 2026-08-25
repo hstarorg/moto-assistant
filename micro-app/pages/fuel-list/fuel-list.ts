@@ -4,12 +4,16 @@ import util = require('../../utils/util');
 import type {
   FuelListResponse,
   FuelModel,
+  FuelRecord,
   FuelRecordView,
   StatisticsData
 } from '../../types';
 
 type FuelModelPath = `fuelModel.${keyof FuelModel}`;
 type FuelFormErrors = Record<keyof FuelModel, string>;
+
+const FUEL_PAGE_SIZE = 20;
+let fuelListRequestVersion = 0;
 
 const createEmptyFuelErrors = (): FuelFormErrors => ({
   refuelDate: '',
@@ -29,13 +33,37 @@ const fuelModelsEqual = (left: FuelModel, right: FuelModel): boolean => {
   );
 };
 
+const toFuelRecordView = (record: FuelRecord): FuelRecordView => {
+  const refuelDate = util.formatTime(new Date(record.refuelDate), 'date');
+  return {
+    formValues: {
+      currentMileage: String(record.currentMileage),
+      refuelAmount: String(record.refuelAmount),
+      refuelDate,
+      unitPrice: String(record.unitPrice)
+    },
+    id: record.id,
+    currentMileage: record.currentMileage,
+    refuelDate,
+    refuelAmount: util.fixed2ForNum(record.refuelAmount),
+    unitPrice: util.fixed2ForNum(record.unitPrice),
+    fuelCount: util.fixed2ForNum(record.fuelCount),
+    updatedAt: util.formatTime(new Date(record.updatedAt)).slice(0, 16)
+  };
+};
+
 const isNumberInRange = (
   value: string,
   minimum: number,
   maximum: number
 ): boolean => {
   const number = Number(value);
-  return value.trim() !== '' && Number.isFinite(number) && number >= minimum && number <= maximum;
+  return (
+    value.trim() !== '' &&
+    Number.isFinite(number) &&
+    number >= minimum &&
+    number <= maximum
+  );
 };
 
 Page({
@@ -45,7 +73,11 @@ Page({
     fuelList: [] as FuelRecordView[],
     isLoaded: false,
     isLoading: false,
+    isLoadingMore: false,
     loadFailed: false,
+    loadMoreFailed: false,
+    nextCursor: null as string | null,
+    totalCount: 0,
     fuelFormVisible: false,
     editingFuelId: null as number | null,
     originalFuelModel: null as FuelModel | null,
@@ -63,6 +95,7 @@ Page({
       unitPrice: ''
     } as FuelModel,
     fuelErrors: createEmptyFuelErrors(),
+    isDeleting: false,
     isSubmitting: false,
     keyboardHeight: 0
   },
@@ -76,44 +109,91 @@ Page({
     if (this.data.isLoading) {
       return;
     }
-    this.setData({ isLoading: true });
+    const requestVersion = ++fuelListRequestVersion;
+    this.setData({
+      isLoading: true,
+      isLoadingMore: false,
+      loadMoreFailed: false,
+      nextCursor: null
+    });
     ajax
-      .get<FuelListResponse>(`/motos/${this.data.motoId}/fuel`)
+      .get<FuelListResponse>(
+        `/motos/${this.data.motoId}/fuel?limit=${FUEL_PAGE_SIZE}`
+      )
       .then(({ data }) => {
-        const fuelList = data.fuelList.map(record => {
-          const refuelDate = util.formatTime(
-            new Date(record.refuelDate),
-            'date'
-          );
-          return {
-            formValues: {
-              currentMileage: String(record.currentMileage),
-              refuelAmount: String(record.refuelAmount),
-              refuelDate,
-              unitPrice: String(record.unitPrice)
-            },
-            id: record.id,
-            currentMileage: record.currentMileage,
-            refuelDate,
-            refuelAmount: util.fixed2ForNum(record.refuelAmount),
-            unitPrice: util.fixed2ForNum(record.unitPrice),
-            fuelCount: util.fixed2ForNum(record.fuelCount),
-            updatedAt: util
-              .formatTime(new Date(record.updatedAt))
-              .slice(0, 16)
-          };
-        });
+        if (requestVersion !== fuelListRequestVersion) {
+          return;
+        }
         this.setData({
-          fuelList,
+          fuelList: data.fuelList.map(toFuelRecordView),
           loadFailed: false,
-          statisticsData: data.statisticsData
+          nextCursor: data.nextCursor,
+          statisticsData: data.statisticsData,
+          totalCount: data.totalCount
         });
       })
       .catch(() => {
-        this.setData({ loadFailed: true });
+        if (requestVersion === fuelListRequestVersion) {
+          this.setData({ loadFailed: true });
+        }
       })
       .finally(() => {
-        this.setData({ isLoaded: true, isLoading: false });
+        if (requestVersion === fuelListRequestVersion) {
+          this.setData({ isLoaded: true, isLoading: false });
+        }
+      });
+  },
+
+  handleLoadMore() {
+    this._loadMoreFuelList();
+  },
+
+  handleLoadMoreRetry() {
+    this._loadMoreFuelList();
+  },
+
+  _loadMoreFuelList() {
+    const cursor = this.data.nextCursor;
+    if (
+      !cursor ||
+      this.data.isLoading ||
+      this.data.isLoadingMore ||
+      this.data.fuelFormVisible
+    ) {
+      return;
+    }
+
+    const requestVersion = fuelListRequestVersion;
+    this.setData({ isLoadingMore: true, loadMoreFailed: false });
+    void ajax
+      .get<FuelListResponse>(
+        `/motos/${this.data.motoId}/fuel?limit=${FUEL_PAGE_SIZE}&cursor=${encodeURIComponent(cursor)}`,
+        { showError: false, showLoading: false }
+      )
+      .then(({ data }) => {
+        if (requestVersion !== fuelListRequestVersion) {
+          return;
+        }
+        const loadedIds = new Set(this.data.fuelList.map(record => record.id));
+        const nextRecords = data.fuelList
+          .map(toFuelRecordView)
+          .filter(record => !loadedIds.has(record.id));
+        this.setData({
+          fuelList: [...this.data.fuelList, ...nextRecords],
+          nextCursor: data.nextCursor,
+          statisticsData: data.statisticsData,
+          totalCount: data.totalCount
+        });
+      })
+      .catch(() => {
+        if (requestVersion === fuelListRequestVersion) {
+          this.setData({ loadMoreFailed: true });
+        }
+      })
+      .finally(() => {
+        if (requestVersion === fuelListRequestVersion) {
+          this.setData({ isLoadingMore: false });
+        }
       });
   },
 
@@ -191,7 +271,7 @@ Page({
   },
 
   handleFuelFormCancel() {
-    if (this.data.isSubmitting) {
+    if (this.data.isSubmitting || this.data.isDeleting) {
       return;
     }
 
@@ -231,7 +311,7 @@ Page({
   },
 
   handleFuelFormSubmit() {
-    if (this.data.isSubmitting) {
+    if (this.data.isSubmitting || this.data.isDeleting) {
       return;
     }
 
@@ -255,15 +335,44 @@ Page({
       return;
     }
 
+    if (this.data.editingFuelId !== null) {
+      if (!this._hasUnsavedFuelChanges()) {
+        messageBox.toast('没有需要保存的修改');
+        return;
+      }
+      wx.showModal({
+        title: '确认修改这条记录？',
+        content: `${fuelModel.refuelDate}，当前里程 ${fuelModel.currentMileage} 公里。保存后相关统计会重新计算。`,
+        confirmText: '确认修改',
+        success: ({ confirm }) => {
+          if (confirm) {
+            this._submitFuelRecord();
+          }
+        }
+      });
+      return;
+    }
+
+    this._submitFuelRecord();
+  },
+
+  _submitFuelRecord(confirmMileageAnomaly = false) {
     this.setData({ isSubmitting: true });
     const editingFuelId = this.data.editingFuelId;
-    const data = fuelModel as unknown as WechatMiniprogram.IAnyObject;
+    const data = {
+      ...this.data.fuelModel,
+      confirmMileageAnomaly
+    } as unknown as WechatMiniprogram.IAnyObject;
     const request =
       editingFuelId === null
-        ? ajax.post(`/motos/${this.data.motoId}/fuel`, data)
+        ? ajax.post(`/motos/${this.data.motoId}/fuel`, data, {
+            showError: false,
+            showLoading: false
+          })
         : ajax.put(
             `/motos/${this.data.motoId}/fuel/${editingFuelId}`,
-            data
+            data,
+            { showError: false, showLoading: false }
           );
     void request
       .then(() => {
@@ -271,9 +380,86 @@ Page({
         messageBox.success(editingFuelId === null ? '记录已添加' : '修改已保存');
         this._loadFuelList();
       })
-      .catch(() => undefined)
+      .catch(error => {
+        if (
+          !confirmMileageAnomaly &&
+          ajax.isApiError(error, 409, 'MILEAGE_ANOMALY')
+        ) {
+          this._showMileageAnomaly(error);
+          return;
+        }
+        messageBox.toast(
+          error instanceof Error && error.message
+            ? error.message
+            : '保存失败，请稍后重试'
+        );
+      })
       .finally(() => {
         this.setData({ isSubmitting: false });
+      });
+  },
+
+  _showMileageAnomaly(error: unknown) {
+    const content =
+      error instanceof Error && error.message
+        ? error.message
+        : '当前里程与相邻记录不一致，请检查后再保存。';
+    wx.showModal({
+      title: '里程可能有误',
+      content,
+      confirmText: '仍然保存',
+      confirmColor: '#b42318',
+      success: ({ confirm }) => {
+        if (confirm) {
+          this._submitFuelRecord(true);
+        }
+      }
+    });
+  },
+
+  handleDeleteFuelClick() {
+    if (
+      this.data.editingFuelId === null ||
+      this.data.isSubmitting ||
+      this.data.isDeleting
+    ) {
+      return;
+    }
+
+    const originalFuelModel =
+      this.data.originalFuelModel ?? this.data.fuelModel;
+    wx.showModal({
+      title: '删除这条加油记录？',
+      content: `${originalFuelModel.refuelDate}，当前里程 ${originalFuelModel.currentMileage} 公里。删除后相关统计会重新计算。`,
+      confirmText: '确认删除',
+      confirmColor: '#b42318',
+      success: ({ confirm }) => {
+        if (confirm) {
+          this._deleteFuelRecord();
+        }
+      }
+    });
+  },
+
+  _deleteFuelRecord() {
+    const fuelId = this.data.editingFuelId;
+    if (fuelId === null) {
+      return;
+    }
+
+    this.setData({ isDeleting: true });
+    void ajax
+      .delete(`/motos/${this.data.motoId}/fuel/${fuelId}`, {
+        showLoading: false
+      })
+      .then(() => {
+        this._closeFuelForm();
+        messageBox.success('记录已删除');
+        this._loadFuelList();
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        this.setData({ isDeleting: false });
       });
   }
 });

@@ -8,12 +8,14 @@ import {
   Param,
   ParseIntPipe,
   Post,
+  Query,
   Put,
   UseGuards,
 } from '@nestjs/common';
 import { type AuthenticatedUser, CurrentUser, TokenAuthGuard } from '../common';
 import {
   CreateFuelRecordDto,
+  FuelListQueryDto,
   UpdateFuelRecordDto,
 } from '../dto/fuel-record.dto';
 import { FuelService } from '../services';
@@ -27,8 +29,9 @@ export class FuelController {
   findAll(
     @CurrentUser() user: AuthenticatedUser,
     @Param('motoId', ParseIntPipe) motoId: number,
+    @Query() query: FuelListQueryDto,
   ) {
-    return this.fuelService.findByMoto(user.id, motoId);
+    return this.fuelService.findByMoto(user.id, motoId, query);
   }
 
   @Post()

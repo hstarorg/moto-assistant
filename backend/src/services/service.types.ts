@@ -26,7 +26,9 @@ export interface FuelRecordResponse {
 
 export interface FuelListResponse {
   fuelList: FuelRecordResponse[];
+  nextCursor: string | null;
   statisticsData: FuelStatisticsResponse;
+  totalCount: number;
 }
 
 export interface MotoResponse {
