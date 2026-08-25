@@ -130,7 +130,7 @@ Page({
 
     this.setData({ restoringMotoId: motoId });
     void ajax
-      .patch(`/motos/${motoId}/restore`, undefined, {
+      .post(`/motos/${motoId}/restore`, {}, {
         showLoading: false
       })
       .then(() => {

@@ -200,14 +200,6 @@ const ajax = {
     return request<T>('PUT', path, data, options);
   },
 
-  patch<T = WechatMiniprogram.IAnyObject>(
-    path: string,
-    data?: RequestData,
-    options?: RequestOptions
-  ) {
-    return request<T>('PATCH', path, data, options);
-  },
-
   delete<T = WechatMiniprogram.IAnyObject>(
     path: string,
     options?: RequestOptions

@@ -158,7 +158,7 @@ Page({
   archiveMoto() {
     this.setData({ isArchiving: true });
     void ajax
-      .patch(`/motos/${this.data.motoId}/archive`)
+      .post(`/motos/${this.data.motoId}/archive`, {})
       .then(() => {
         messageBox.toast('车辆已归档');
         setTimeout(() => this.navigateBackToIndex(), 1200);

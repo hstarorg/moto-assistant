@@ -7,7 +7,6 @@ import {
   HttpStatus,
   Param,
   ParseIntPipe,
-  Patch,
   Post,
   Put,
   Query,
@@ -86,7 +85,7 @@ export class MotoController {
     return this.motoService.update(user.id, motoId, dto, file);
   }
 
-  @Patch(':motoId/archive')
+  @Post(':motoId/archive')
   @HttpCode(HttpStatus.NO_CONTENT)
   archive(
     @CurrentUser() user: AuthenticatedUser,
@@ -95,7 +94,7 @@ export class MotoController {
     return this.motoService.archive(user.id, motoId);
   }
 
-  @Patch(':motoId/restore')
+  @Post(':motoId/restore')
   @HttpCode(HttpStatus.NO_CONTENT)
   restore(
     @CurrentUser() user: AuthenticatedUser,

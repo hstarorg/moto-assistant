@@ -12,7 +12,7 @@
 }
 
 .status-switch__item {
-  min-height: 76rpx;
+  min-height: 88rpx;
   flex: 1;
   margin: 0;
   padding: 0 24rpx;
@@ -22,7 +22,7 @@
   color: #59616a;
   font-size: 28rpx;
   font-weight: 500;
-  line-height: 76rpx;
+  line-height: 88rpx;
 }
 
 .status-switch__item::after {
