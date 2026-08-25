@@ -10,6 +10,31 @@
 >
   <scroll-view scroll-y class="scroll-view">
     <view class="content-container">
+      <view class="status-switch" aria-role="tablist" aria-label="车辆状态">
+        <button
+          class="status-switch__item {{selectedStatus === 'active' ? 'status-switch__item--selected' : ''}}"
+          hover-class="status-switch__item--pressed"
+          aria-role="tab"
+          aria-selected="{{selectedStatus === 'active'}}"
+          disabled="{{isLoadingMotos}}"
+          data-status="active"
+          bindtap="handleStatusChange"
+        >
+          使用中
+        </button>
+        <button
+          class="status-switch__item {{selectedStatus === 'archived' ? 'status-switch__item--selected' : ''}}"
+          hover-class="status-switch__item--pressed"
+          aria-role="tab"
+          aria-selected="{{selectedStatus === 'archived'}}"
+          disabled="{{isLoadingMotos}}"
+          data-status="archived"
+          bindtap="handleStatusChange"
+        >
+          已归档
+        </button>
+      </view>
+
       <page-shell
         wx:if="{{isLoaded && loadFailed}}"
         state="error"
@@ -24,34 +49,75 @@
         wx:elif="{{isLoaded && motoList.length === 0}}"
         state="empty"
         state-size="compact"
-        title="还没有车辆"
-        description="添加车辆后即可开始记录油耗"
-        action-label="添加车辆"
+        title="{{selectedStatus === 'active' ? '还没有车辆' : '没有已归档车辆'}}"
+        description="{{selectedStatus === 'active' ? '添加车辆后即可开始记录油耗' : '归档的车辆会显示在这里'}}"
+        action-label="{{selectedStatus === 'active' ? '添加车辆' : ''}}"
         bindaction="handleBtnAddTap"
       ></page-shell>
       <block wx:else>
-        <button
-          class="moto-item"
-          hover-class="moto-item--pressed"
-          wx:for="{{motoList}}"
-          wx:key="id"
-          aria-label="查看{{item.motoName}}，车牌号{{item.motoLicensePlate}}的加油记录"
-          bindtap="navigateToFuelList"
-          data-moto-id="{{item.id}}"
-        >
-          <image
-            class="moto-item-photo"
-            src="{{item.motoPhotoUrl}}"
-            mode="aspectFill"
-            lazy-load
-            aria-hidden="true"
-          ></image>
-          <view class="moto-item-content">
-            <text class="moto-item-name">{{item.motoName}}</text>
-            <text class="moto-item-desc">车牌号：{{item.motoLicensePlate}}</text>
+        <view class="moto-item" wx:for="{{motoList}}" wx:key="id">
+          <button
+            wx:if="{{selectedStatus === 'active'}}"
+            class="moto-item-main"
+            hover-class="moto-item-main--pressed"
+            aria-label="查看{{item.motoName}}，车牌号{{item.motoLicensePlate}}的加油记录"
+            bindtap="navigateToFuelList"
+            data-moto-id="{{item.id}}"
+          >
+            <image
+              class="moto-item-photo"
+              src="{{item.motoPhotoUrl}}"
+              mode="aspectFill"
+              lazy-load
+              aria-hidden="true"
+            ></image>
+            <view class="moto-item-content">
+              <text class="moto-item-name">{{item.motoName}}</text>
+              <text class="moto-item-desc">车牌号：{{item.motoLicensePlate}}</text>
+            </view>
+          </button>
+          <view wx:else class="moto-item-main moto-item-main--static">
+            <image
+              class="moto-item-photo"
+              src="{{item.motoPhotoUrl}}"
+              mode="aspectFill"
+              lazy-load
+              aria-hidden="true"
+            ></image>
+            <view class="moto-item-content">
+              <text class="moto-item-name">{{item.motoName}}</text>
+              <text class="moto-item-desc">车牌号：{{item.motoLicensePlate}}</text>
+            </view>
           </view>
-        </button>
-        <view wx:if="{{isLoaded && motoList.length > 0}}" class="btn-add-area">
+
+          <view class="moto-item-footer">
+            <action-button
+              wx:if="{{selectedStatus === 'active'}}"
+              class="moto-item-action"
+              variant="text"
+              label="管理车辆"
+              aria-label="编辑或归档{{item.motoName}}"
+              data-moto-id="{{item.id}}"
+              bindtap="navigateToMotoEdit"
+            ></action-button>
+            <action-button
+              wx:else
+              class="moto-item-action"
+              variant="text"
+              label="{{restoringMotoId === item.id ? '恢复中' : '恢复使用'}}"
+              aria-label="恢复{{item.motoName}}"
+              loading="{{restoringMotoId === item.id}}"
+              disabled="{{restoringMotoId > 0}}"
+              data-moto-id="{{item.id}}"
+              bindtap="handleRestoreMoto"
+            ></action-button>
+          </view>
+        </view>
+
+        <view
+          wx:if="{{isLoaded && motoList.length > 0 && selectedStatus === 'active'}}"
+          class="btn-add-area"
+        >
           <action-button
             class="btn-add-moto"
             variant="secondary"

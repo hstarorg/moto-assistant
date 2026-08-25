@@ -3,28 +3,83 @@
   box-sizing: border-box;
 }
 
+.status-switch {
+  display: flex;
+  margin-bottom: 24rpx;
+  padding: 6rpx;
+  border-radius: 14rpx;
+  background: #e9ecef;
+}
+
+.status-switch__item {
+  min-height: 76rpx;
+  flex: 1;
+  margin: 0;
+  padding: 0 24rpx;
+  border: 0;
+  border-radius: 10rpx;
+  background: transparent;
+  color: #59616a;
+  font-size: 28rpx;
+  font-weight: 500;
+  line-height: 76rpx;
+}
+
+.status-switch__item::after {
+  border: 0;
+}
+
+.status-switch__item--selected {
+  background: #fff;
+  color: #16683f;
+  font-weight: 600;
+}
+
+.status-switch__item--pressed {
+  opacity: 0.76;
+}
+
+.status-switch__item[disabled] {
+  color: #8d949c;
+  opacity: 1;
+}
+
 .moto-item {
   width: 100%;
-  display: flex;
-  align-items: center;
   margin-bottom: 20rpx;
-  padding: 20rpx;
+  overflow: hidden;
   border: 1rpx solid #dfe3e8;
   border-radius: 12rpx;
   background: #fff;
+  box-sizing: border-box;
+}
+
+.moto-item-main {
+  width: 100%;
+  min-height: 168rpx;
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 20rpx;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   box-sizing: border-box;
   color: inherit;
   line-height: normal;
   text-align: left;
 }
 
-.moto-item::after {
+.moto-item-main::after {
   border: 0;
 }
 
-.moto-item--pressed {
+.moto-item-main--pressed {
   background: #eef7f1;
-  opacity: 0.85;
+}
+
+.moto-item-main--static {
+  opacity: 0.82;
 }
 
 .moto-item-photo {
@@ -60,6 +115,17 @@
   line-height: 1.5;
 }
 
+.moto-item-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 12rpx;
+  border-top: 1rpx solid #edf0f2;
+}
+
+.moto-item-action {
+  width: 200rpx;
+}
+
 .scroll-view {
   width: 100%;
   height: 100%;
@@ -73,4 +139,40 @@
 .btn-add-moto {
   width: 240rpx;
   margin: 0 auto;
+}
+
+@media (prefers-color-scheme: dark) {
+  .status-switch {
+    background: #303236;
+  }
+
+  .status-switch__item {
+    color: #b6bbc3;
+  }
+
+  .status-switch__item--selected {
+    background: #242629;
+    color: #8ce0b5;
+  }
+
+  .moto-item {
+    border-color: #454a51;
+    background: #242629;
+  }
+
+  .moto-item-main--pressed {
+    background: #253a30;
+  }
+
+  .moto-item-name {
+    color: #f3f5f7;
+  }
+
+  .moto-item-desc {
+    color: #b6bbc3;
+  }
+
+  .moto-item-footer {
+    border-top-color: #3c4046;
+  }
 }

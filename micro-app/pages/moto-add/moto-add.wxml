@@ -1,97 +1,129 @@
-<view class="container">
-  <form class="form-moto" bindsubmit="handleFormSubmit">
-    <view class="photo-field">
-      <button
-        class="photo-picker"
-        hover-class="photo-picker--pressed"
-        aria-label="{{motoInfo.motoPhotoUrl ? '更换车辆图片' : '选择车辆图片'}}"
-        bindtap="handleUpdatePhoto"
-      >
-        <image
-          wx:if="{{motoInfo.motoPhotoUrl}}"
-          class="moto-photo"
-          src="{{motoInfo.motoPhotoUrl}}"
-          mode="aspectFill"
-          aria-hidden="true"
-        ></image>
-        <view wx:else class="photo-placeholder">
-          <text class="photo-placeholder-title">选择车辆图片</text>
-          <text class="photo-placeholder-desc">相册或拍照，最大 10 MB</text>
+<page-shell
+  state="{{isPageReady ? 'content' : (loadFailed ? 'error' : 'loading')}}"
+  title="{{loadFailed ? '车辆信息加载失败' : '正在加载车辆信息'}}"
+  description="{{loadFailed ? '请检查网络后重新加载。' : '请稍候'}}"
+  action-label="{{loadFailed ? '重新加载' : ''}}"
+  action-aria-label="重新加载车辆信息"
+  bindaction="loadMoto"
+>
+  <scroll-view scroll-y class="form-scroll">
+    <view class="container">
+      <form class="form-moto" bindsubmit="handleFormSubmit">
+        <view class="photo-field">
+          <button
+            class="photo-picker"
+            hover-class="photo-picker--pressed"
+            aria-label="{{motoInfo.motoPhotoUrl ? '更换车辆图片' : '选择车辆图片'}}"
+            bindtap="handleUpdatePhoto"
+          >
+            <image
+              wx:if="{{motoInfo.motoPhotoUrl}}"
+              class="moto-photo"
+              src="{{motoInfo.motoPhotoUrl}}"
+              mode="aspectFill"
+              aria-hidden="true"
+            ></image>
+            <view wx:else class="photo-placeholder">
+              <text class="photo-placeholder-title">选择车辆图片</text>
+              <text class="photo-placeholder-desc">相册或拍照，最大 10 MB</text>
+            </view>
+          </button>
+          <text
+            wx:if="{{formErrors.motoPhotoUrl}}"
+            class="photo-error"
+            aria-role="alert"
+          >
+            {{formErrors.motoPhotoUrl}}
+          </text>
         </view>
-      </button>
-      <text wx:if="{{formErrors.motoPhotoUrl}}" class="photo-error" aria-role="alert">
-        {{formErrors.motoPhotoUrl}}
-      </text>
-    </view>
 
-    <form-field
-      label="车辆名称"
-      label-for="moto-name"
-      required="{{true}}"
-      error="{{formErrors.motoName}}"
-    >
-      <input
-        id="moto-name"
-        class="form-field-control"
-        name="motoName"
-        maxlength="100"
-        placeholder="请输入车辆名称"
-        value="{{motoInfo.motoName}}"
-        confirm-type="next"
-        aria-label="车辆名称，必填"
-        bindinput="updateMotoName"
-      />
-    </form-field>
+        <form-field
+          label="车辆名称"
+          label-for="moto-name"
+          required="{{true}}"
+          error="{{formErrors.motoName}}"
+        >
+          <input
+            id="moto-name"
+            class="form-field-control"
+            name="motoName"
+            maxlength="100"
+            placeholder="请输入车辆名称"
+            value="{{motoInfo.motoName}}"
+            confirm-type="next"
+            aria-label="车辆名称，必填"
+            bindinput="updateMotoName"
+          />
+        </form-field>
 
-    <form-field
-      label="购车时间"
-      required="{{true}}"
-      error="{{formErrors.motoBuyDate}}"
-    >
-      <picker
-        class="form-field-control"
-        mode="date"
-        value="{{motoInfo.motoBuyDate}}"
-        end="{{dateNowStr}}"
-        aria-label="选择购车时间，必填"
-        bindchange="bindDateChange"
-      >
-        <view class="form-field-control-text {{motoInfo.motoBuyDate ? '' : 'placeholder'}}">
-          {{motoInfo.motoBuyDate || '请选择购车时间'}}
+        <form-field
+          label="购车时间"
+          required="{{true}}"
+          error="{{formErrors.motoBuyDate}}"
+        >
+          <picker
+            class="form-field-control"
+            mode="date"
+            value="{{motoInfo.motoBuyDate}}"
+            end="{{dateNowStr}}"
+            aria-label="选择购车时间，必填"
+            bindchange="bindDateChange"
+          >
+            <view
+              class="form-field-control-text {{motoInfo.motoBuyDate ? '' : 'placeholder'}}"
+            >
+              {{motoInfo.motoBuyDate || '请选择购车时间'}}
+            </view>
+          </picker>
+        </form-field>
+
+        <form-field
+          label="车牌号"
+          label-for="license-plate"
+          required="{{true}}"
+          error="{{formErrors.motoLicensePlate}}"
+        >
+          <input
+            id="license-plate"
+            class="form-field-control"
+            name="motoLicensePlate"
+            maxlength="50"
+            placeholder="请输入车牌号"
+            value="{{motoInfo.motoLicensePlate}}"
+            confirm-type="done"
+            aria-label="车牌号，必填"
+            bindinput="updateMotoLicensePlate"
+          />
+        </form-field>
+
+        <view class="btn-area">
+          <action-button
+            label="{{isSubmitting ? '保存中' : '确认保存'}}"
+            aria-label="确认保存车辆"
+            form-type="submit"
+            loading="{{isSubmitting}}"
+            disabled="{{isSubmitting || isArchiving}}"
+          ></action-button>
         </view>
-      </picker>
-    </form-field>
 
-    <form-field
-      label="车牌号"
-      label-for="license-plate"
-      required="{{true}}"
-      error="{{formErrors.motoLicensePlate}}"
-    >
-      <input
-        id="license-plate"
-        class="form-field-control"
-        name="motoLicensePlate"
-        maxlength="50"
-        placeholder="请输入车牌号"
-        value="{{motoInfo.motoLicensePlate}}"
-        confirm-type="done"
-        aria-label="车牌号，必填"
-        bindinput="updateMotoLicensePlate"
-      />
-    </form-field>
-
-    <view class="btn-area">
-      <action-button
-        label="{{isSubmitting ? '保存中' : '确认保存'}}"
-        aria-label="确认保存车辆"
-        form-type="submit"
-        loading="{{isSubmitting}}"
-        disabled="{{isSubmitting}}"
-      ></action-button>
+        <view wx:if="{{isEditing}}" class="archive-section">
+          <text class="archive-title">车辆管理</text>
+          <text class="archive-description">
+            归档后车辆不再出现在日常列表中，已有加油记录会继续保留。
+          </text>
+          <action-button
+            class="archive-button"
+            variant="danger"
+            label="{{isArchiving ? '归档中' : '归档车辆'}}"
+            loading="{{isArchiving}}"
+            disabled="{{isSubmitting || isArchiving}}"
+            bindtap="handleArchive"
+          ></action-button>
+        </view>
+      </form>
     </view>
-  </form>
-</view>
+  </scroll-view>
+</page-shell>
 
 <view wx:if="{{showPrivacy}}" class="privacy-mask">
   <view class="privacy-dialog" aria-role="dialog" aria-label="车辆图片隐私授权">

@@ -61,6 +61,12 @@
   color: #30343b;
 }
 
+.action-button--danger {
+  border: 1rpx solid #d8a5a3;
+  background: #fff;
+  color: #a51d1a;
+}
+
 .action-button--text {
   padding-right: 20rpx;
   padding-left: 20rpx;
@@ -79,6 +85,7 @@
 }
 
 .action-button.action-button--secondary[disabled],
+.action-button.action-button--danger[disabled],
 .action-button.action-button--text[disabled] {
   background: #f1f2f4;
   color: #9aa0a8;
@@ -111,11 +118,18 @@
     color: #f3f5f7;
   }
 
+  .action-button--danger {
+    border-color: #865957;
+    background: #242629;
+    color: #ffaaa6;
+  }
+
   .action-button--text {
     color: #8ce0b5;
   }
 
   .action-button.action-button--secondary[disabled],
+  .action-button.action-button--danger[disabled],
   .action-button.action-button--text[disabled] {
     background: #303236;
     color: #777d86;

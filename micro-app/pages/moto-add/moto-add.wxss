@@ -1,3 +1,8 @@
+.form-scroll {
+  width: 100%;
+  height: 100%;
+}
+
 .form-moto {
   width: 100%;
 }
@@ -72,6 +77,35 @@
 
 .btn-area {
   margin-top: 32rpx;
+}
+
+.archive-section {
+  margin-top: 64rpx;
+  padding-top: 40rpx;
+  border-top: 1rpx solid #dfe3e8;
+}
+
+.archive-title,
+.archive-description {
+  display: block;
+}
+
+.archive-title {
+  color: #1f2329;
+  font-size: 30rpx;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.archive-description {
+  margin-top: 12rpx;
+  color: #606770;
+  font-size: 26rpx;
+  line-height: 1.65;
+}
+
+.archive-button {
+  margin-top: 24rpx;
 }
 
 .privacy-mask {

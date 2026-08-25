@@ -16,11 +16,18 @@ export interface MotoAppOptions {
   subscribeLoginState(listener: LoginStatusListener): () => void;
 }
 
+export type MotoStatus = 'active' | 'archived';
+
 export interface Moto {
+  createdAt: string;
   id: number;
+  motoBuyDate: string;
   motoName: string;
   motoLicensePlate: string;
   motoPhotoUrl: string;
+  ownerId: number;
+  status: MotoStatus;
+  updatedAt: string;
 }
 
 export interface MotoInfo {
