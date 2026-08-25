@@ -62,16 +62,25 @@ export class MotoController {
   }
 
   @Put(':motoId')
+  update(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('motoId', ParseIntPipe) motoId: number,
+    @Body() dto: UpdateMotoDto,
+  ) {
+    return this.motoService.update(user.id, motoId, dto);
+  }
+
+  @Post(':motoId')
   @UseInterceptors(
     FileInterceptor('file', { limits: { fileSize: 10_000_000 } }),
   )
-  update(
+  updateWithPhoto(
     @CurrentUser() user: AuthenticatedUser,
     @Param('motoId', ParseIntPipe) motoId: number,
     @Body() dto: UpdateMotoDto,
     @UploadedFile() file?: Express.Multer.File,
   ) {
-    if (file && !file.mimetype.startsWith('image/')) {
+    if (!file || !file.mimetype.startsWith('image/')) {
       throw new BadRequestException('请上传正确的车辆图片');
     }
     return this.motoService.update(user.id, motoId, dto, file);
