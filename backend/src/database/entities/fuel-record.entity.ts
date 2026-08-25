@@ -1,6 +1,7 @@
 import {
   Column,
   CreateDateColumn,
+  DeleteDateColumn,
   Entity,
   Index,
   JoinColumn,
@@ -11,7 +12,9 @@ import {
 import { DATABASE_SCHEMA } from '../constants';
 import { MotoEntity } from './moto.entity';
 
-@Index('idx_fuel_records_moto_date_id', ['motoId', 'refuelDate', 'id'])
+@Index('idx_fuel_records_moto_active_date_id', ['motoId', 'refuelDate', 'id'], {
+  where: '"deleted_at" IS NULL',
+})
 @Entity({ name: 'fuel_records', schema: DATABASE_SCHEMA })
 export class FuelRecordEntity {
   @PrimaryGeneratedColumn('identity')
@@ -40,6 +43,9 @@ export class FuelRecordEntity {
 
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
   updatedAt!: Date;
+
+  @DeleteDateColumn({ name: 'deleted_at', nullable: true, type: 'timestamptz' })
+  deletedAt?: Date;
 
   @ManyToOne(() => MotoEntity, 'fuelRecords', {
     createForeignKeyConstraints: false,

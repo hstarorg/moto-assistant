@@ -1,10 +1,15 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { LRUCache } from 'lru-cache';
 import { Repository } from 'typeorm';
 import { MotoStatus } from '../constants';
 import { MotoEntity } from '../database';
-import { CreateMotoDto } from '../dto/create-moto.dto';
+import { CreateMotoDto, UpdateMotoDto } from '../dto/moto.dto';
 import type { MotoResponse } from './service.types';
 import { ThirdPartyService } from './third-party.service';
 
@@ -42,12 +47,63 @@ export class MotoService {
     });
   }
 
-  async findByOwner(ownerId: number): Promise<MotoResponse[]> {
+  async findByOwner(
+    ownerId: number,
+    status: MotoStatus = MotoStatus.ACTIVE,
+  ): Promise<MotoResponse[]> {
     const motos = await this.motos.find({
       order: { updatedAt: 'DESC' },
-      where: { ownerId, status: MotoStatus.ACTIVE },
+      where: { ownerId, status },
     });
     return Promise.all(motos.map((moto) => this.toResponse(moto)));
+  }
+
+  async findOne(ownerId: number, motoId: number): Promise<MotoResponse> {
+    const moto = await this.findOwnedMoto(ownerId, motoId);
+    return this.toResponse(moto);
+  }
+
+  async update(
+    ownerId: number,
+    motoId: number,
+    dto: UpdateMotoDto,
+    file?: Express.Multer.File,
+  ): Promise<MotoResponse> {
+    const moto = await this.findOwnedMoto(ownerId, motoId);
+    if (moto.status !== MotoStatus.ACTIVE) {
+      throw new ConflictException('请先恢复车辆再编辑');
+    }
+
+    const previousPhotoKey = moto.motoPhotoUrl;
+    const nextPhotoKey = file
+      ? await this.thirdParty.uploadImage(file)
+      : previousPhotoKey;
+
+    moto.motoBuyDate = dto.motoBuyDate;
+    moto.motoLicensePlate = dto.motoLicensePlate;
+    moto.motoName = dto.motoName;
+    moto.motoPhotoUrl = nextPhotoKey;
+
+    const savedMoto = await this.motos.save(moto);
+    return this.toResponse(savedMoto);
+  }
+
+  async archive(ownerId: number, motoId: number): Promise<void> {
+    const moto = await this.findOwnedMoto(ownerId, motoId);
+    if (moto.status === MotoStatus.ARCHIVED) {
+      return;
+    }
+    moto.status = MotoStatus.ARCHIVED;
+    await this.motos.save(moto);
+  }
+
+  async restore(ownerId: number, motoId: number): Promise<void> {
+    const moto = await this.findOwnedMoto(ownerId, motoId);
+    if (moto.status === MotoStatus.ACTIVE) {
+      return;
+    }
+    moto.status = MotoStatus.ACTIVE;
+    await this.motos.save(moto);
   }
 
   private async toResponse(moto: MotoEntity): Promise<MotoResponse> {
@@ -79,5 +135,16 @@ export class MotoService {
       });
     this.imageUrls.set(storedValue, imageUrl);
     return imageUrl;
+  }
+
+  private async findOwnedMoto(
+    ownerId: number,
+    motoId: number,
+  ): Promise<MotoEntity> {
+    const moto = await this.motos.findOneBy({ id: motoId, ownerId });
+    if (!moto) {
+      throw new NotFoundException('车辆不存在');
+    }
+    return moto;
   }
 }
