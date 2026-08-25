@@ -7,6 +7,7 @@ export type LoginStatusListener = (status: LoginStatus) => void;
 
 export interface MotoAppGlobalData {
   loginStatus: LoginStatus;
+  pendingMotoStatus?: MotoStatus;
   token?: string;
 }
 

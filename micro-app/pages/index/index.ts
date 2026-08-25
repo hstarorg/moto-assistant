@@ -10,6 +10,12 @@ import type {
 const app = getApp<MotoAppOptions>();
 let unsubscribeLoginState: (() => void) | undefined;
 
+const consumePendingMotoStatus = (): MotoStatus | undefined => {
+  const pendingMotoStatus = app.globalData.pendingMotoStatus;
+  delete app.globalData.pendingMotoStatus;
+  return pendingMotoStatus;
+};
+
 Page({
   data: {
     hasLoginFailed: false,
@@ -23,6 +29,11 @@ Page({
   },
 
   onLoad() {
+    const pendingMotoStatus = consumePendingMotoStatus();
+    if (pendingMotoStatus) {
+      this.setData({ selectedStatus: pendingMotoStatus });
+    }
+
     unsubscribeLoginState?.();
     unsubscribeLoginState = app.subscribeLoginState(status => {
       this.setData({
@@ -47,7 +58,21 @@ Page({
   },
 
   onShow() {
+    const pendingMotoStatus = consumePendingMotoStatus();
+    if (pendingMotoStatus) {
+      if (pendingMotoStatus !== this.data.selectedStatus) {
+        this.setData({
+          isLoaded: false,
+          loadFailed: false,
+          motoList: [],
+          selectedStatus: pendingMotoStatus
+        });
+      }
+    }
+
     if (app.globalData.loginStatus === 'ready' && this.data.isLoaded) {
+      this._loadUserMotoList();
+    } else if (app.globalData.loginStatus === 'ready' && pendingMotoStatus) {
       this._loadUserMotoList();
     }
   },
@@ -165,6 +190,9 @@ Page({
       .finally(() => {
         if (this.data.selectedStatus === status) {
           this.setData({ isLoaded: true, isLoadingMotos: false });
+        } else {
+          this.setData({ isLoadingMotos: false });
+          this._loadUserMotoList();
         }
       });
   }

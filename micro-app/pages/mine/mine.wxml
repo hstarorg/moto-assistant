@@ -1,0 +1,83 @@
+<scroll-view class="mine-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+  <view class="mine-page">
+    <view class="profile-card" aria-label="机车助理">
+      <view class="brand-mark" aria-hidden="true">
+        <text class="brand-mark-text">机车</text>
+      </view>
+      <view class="profile-content">
+        <text class="profile-title">机车助理</text>
+        <text class="profile-desc">记录车辆、加油与骑行数据</text>
+      </view>
+    </view>
+
+    <view class="section">
+      <text class="section-title">车辆管理</text>
+      <view class="action-card">
+        <button
+          class="action-row"
+          hover-class="action-row--pressed"
+          aria-label="查看已归档车辆"
+          bindtap="navigateToArchivedMotos"
+        >
+          <view class="action-content">
+            <text class="action-title">已归档车辆</text>
+            <text class="action-desc">查看或恢复不再使用的车辆</text>
+          </view>
+          <view class="action-chevron" aria-hidden="true"></view>
+        </button>
+      </view>
+    </view>
+
+    <view class="section">
+      <text class="section-title">服务与支持</text>
+      <view class="action-card">
+        <button
+          class="action-row"
+          hover-class="action-row--pressed"
+          aria-label="查看小程序隐私保护指引"
+          bindtap="openPrivacyContract"
+        >
+          <view class="action-content">
+            <text class="action-title">隐私保护</text>
+            <text class="action-desc">了解信息的收集与使用方式</text>
+          </view>
+          <view class="action-chevron" aria-hidden="true"></view>
+        </button>
+        <view class="action-divider"></view>
+        <button
+          class="action-row"
+          hover-class="action-row--pressed"
+          aria-label="提交反馈与建议"
+          open-type="feedback"
+        >
+          <view class="action-content">
+            <text class="action-title">反馈与建议</text>
+            <text class="action-desc">告诉我们你的使用体验</text>
+          </view>
+          <view class="action-chevron" aria-hidden="true"></view>
+        </button>
+      </view>
+    </view>
+
+    <view class="section">
+      <text class="section-title">其他</text>
+      <view class="action-card">
+        <button
+          class="action-row"
+          hover-class="action-row--pressed"
+          aria-label="关于机车助理"
+          bindtap="navigateToAbout"
+        >
+          <view class="action-content">
+            <text class="action-title">关于机车助理</text>
+            <text class="action-desc">功能介绍与版本信息</text>
+          </view>
+          <view class="action-meta">
+            <text wx:if="{{versionText}}" class="version-text">{{versionText}}</text>
+            <view class="action-chevron" aria-hidden="true"></view>
+          </view>
+        </button>
+      </view>
+    </view>
+  </view>
+</scroll-view>
