@@ -1,5 +1,11 @@
 import { Type } from 'class-transformer';
-import { IsDateString, IsNumber, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsDateString,
+  IsNumber,
+  IsOptional,
+  Min,
+} from 'class-validator';
 
 export class CreateFuelRecordDto {
   @Type(() => Number)
@@ -19,6 +25,10 @@ export class CreateFuelRecordDto {
   @IsNumber()
   @Min(0.01)
   unitPrice!: number;
+
+  @IsOptional()
+  @IsBoolean()
+  confirmMileageAnomaly?: boolean;
 }
 
 export class UpdateFuelRecordDto extends CreateFuelRecordDto {}

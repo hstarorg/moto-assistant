@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -48,5 +49,15 @@ export class FuelController {
     @Body() dto: UpdateFuelRecordDto,
   ) {
     return this.fuelService.update(user.id, motoId, fuelId, dto);
+  }
+
+  @Delete(':fuelId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  remove(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('motoId', ParseIntPipe) motoId: number,
+    @Param('fuelId', ParseIntPipe) fuelId: number,
+  ) {
+    return this.fuelService.remove(user.id, motoId, fuelId);
   }
 }

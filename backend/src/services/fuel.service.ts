@@ -1,6 +1,18 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Not, Repository } from 'typeorm';
+import {
+  Equal,
+  type FindOptionsWhere,
+  LessThan,
+  LessThanOrEqual,
+  MoreThan,
+  Not,
+  Repository,
+} from 'typeorm';
 import { MotoStatus } from '../constants';
 import { FuelRecordEntity, MotoEntity } from '../database';
 import {
@@ -28,6 +40,13 @@ export class FuelService {
     dto: CreateFuelRecordDto,
   ): Promise<void> {
     await this.assertOwnedMoto(ownerId, motoId);
+    const refuelDate = new Date(dto.refuelDate);
+    await this.assertMileageOrder(
+      motoId,
+      refuelDate,
+      dto.currentMileage,
+      dto.confirmMileageAnomaly,
+    );
     const fuelCount = dto.refuelAmount / dto.unitPrice;
 
     await this.fuelRecords.insert({
@@ -35,7 +54,7 @@ export class FuelService {
       fuelCount: fuelCount.toFixed(4),
       motoId,
       refuelAmount: dto.refuelAmount.toFixed(2),
-      refuelDate: new Date(dto.refuelDate),
+      refuelDate,
       unitPrice: dto.unitPrice.toFixed(4),
     });
   }
@@ -72,14 +91,35 @@ export class FuelService {
       throw new NotFoundException('加油记录不存在');
     }
 
+    const refuelDate = new Date(dto.refuelDate);
+    await this.assertMileageOrder(
+      motoId,
+      refuelDate,
+      dto.currentMileage,
+      dto.confirmMileageAnomaly,
+      fuelId,
+    );
     const fuelCount = dto.refuelAmount / dto.unitPrice;
     fuelRecord.currentMileage = dto.currentMileage.toFixed(1);
     fuelRecord.fuelCount = fuelCount.toFixed(4);
     fuelRecord.refuelAmount = dto.refuelAmount.toFixed(2);
-    fuelRecord.refuelDate = new Date(dto.refuelDate);
+    fuelRecord.refuelDate = refuelDate;
     fuelRecord.unitPrice = dto.unitPrice.toFixed(4);
 
     return this.toResponse(await this.fuelRecords.save(fuelRecord));
+  }
+
+  async remove(ownerId: number, motoId: number, fuelId: number): Promise<void> {
+    await this.assertOwnedMoto(ownerId, motoId);
+    const fuelRecord = await this.fuelRecords.findOneBy({
+      id: fuelId,
+      motoId,
+    });
+    if (!fuelRecord) {
+      throw new NotFoundException('加油记录不存在');
+    }
+
+    await this.fuelRecords.softRemove(fuelRecord);
   }
 
   private async assertOwnedMoto(
@@ -138,6 +178,92 @@ export class FuelService {
       totalAmount,
       totalMileage,
     };
+  }
+
+  private async assertMileageOrder(
+    motoId: number,
+    refuelDate: Date,
+    currentMileage: number,
+    confirmed = false,
+    fuelId?: number,
+  ): Promise<void> {
+    if (confirmed) {
+      return;
+    }
+
+    const [previous, next] = await this.findMileageNeighbors(
+      motoId,
+      refuelDate,
+      fuelId,
+    );
+    const warnings: string[] = [];
+    if (previous && currentMileage < Number(previous.currentMileage)) {
+      warnings.push(`本次里程低于上一条 ${this.describeMileage(previous)}`);
+    }
+    if (next && currentMileage > Number(next.currentMileage)) {
+      warnings.push(`本次里程高于下一条 ${this.describeMileage(next)}`);
+    }
+
+    if (warnings.length > 0) {
+      throw new ConflictException({
+        code: 'MILEAGE_ANOMALY',
+        message: `${warnings.join('；')}。请检查加油日期或里程；如仪表已更换或重置，可以继续保存`,
+      });
+    }
+  }
+
+  private async findMileageNeighbors(
+    motoId: number,
+    refuelDate: Date,
+    fuelId?: number,
+  ): Promise<[FuelRecordEntity | null, FuelRecordEntity | null]> {
+    let previousWhere: FindOptionsWhere<FuelRecordEntity>[];
+    let nextWhere: FindOptionsWhere<FuelRecordEntity>[];
+
+    if (fuelId === undefined) {
+      previousWhere = [{ motoId, refuelDate: LessThanOrEqual(refuelDate) }];
+      nextWhere = [{ motoId, refuelDate: MoreThan(refuelDate) }];
+    } else {
+      previousWhere = [
+        {
+          id: Not(fuelId),
+          motoId,
+          refuelDate: LessThan(refuelDate),
+        },
+        {
+          id: LessThan(fuelId),
+          motoId,
+          refuelDate: Equal(refuelDate),
+        },
+      ];
+      nextWhere = [
+        {
+          id: MoreThan(fuelId),
+          motoId,
+          refuelDate: Equal(refuelDate),
+        },
+        {
+          id: Not(fuelId),
+          motoId,
+          refuelDate: MoreThan(refuelDate),
+        },
+      ];
+    }
+
+    return Promise.all([
+      this.fuelRecords.findOne({
+        order: { refuelDate: 'DESC', id: 'DESC' },
+        where: previousWhere,
+      }),
+      this.fuelRecords.findOne({
+        order: { refuelDate: 'ASC', id: 'ASC' },
+        where: nextWhere,
+      }),
+    ]);
+  }
+
+  private describeMileage(record: FuelRecordEntity): string {
+    return `${Number(record.currentMileage)} 公里（${record.refuelDate.toISOString().slice(0, 10)}）`;
   }
 
   private toResponse(record: FuelRecordEntity): FuelRecordResponse {
