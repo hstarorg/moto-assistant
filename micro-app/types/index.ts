@@ -3,6 +3,7 @@ export interface AccountTokenResponse {
 }
 
 export type LoginStatus = 'loggingIn' | 'ready' | 'failed';
+export type LoginStatusListener = (status: LoginStatus) => void;
 
 export interface MotoAppGlobalData {
   loginStatus: LoginStatus;
@@ -11,15 +12,22 @@ export interface MotoAppGlobalData {
 
 export interface MotoAppOptions {
   globalData: MotoAppGlobalData;
-  loginStateChangedCallback?: (status: LoginStatus) => void;
   doLogin(): Promise<void>;
+  subscribeLoginState(listener: LoginStatusListener): () => void;
 }
 
+export type MotoStatus = 'active' | 'archived';
+
 export interface Moto {
+  createdAt: string;
   id: number;
+  motoBuyDate: string;
   motoName: string;
   motoLicensePlate: string;
   motoPhotoUrl: string;
+  ownerId: number;
+  status: MotoStatus;
+  updatedAt: string;
 }
 
 export interface MotoInfo {
@@ -49,15 +57,18 @@ export interface FuelRecord {
 }
 
 export interface FuelRecordView {
+  formValues: FuelModel;
   id: number;
   currentMileage: number;
   refuelDate: string;
   refuelAmount: string;
   unitPrice: string;
   fuelCount: string;
+  updatedAt: string;
 }
 
 export interface StatisticsData {
+  currentMileage: number;
   totalMileage: number;
   totalAmount: number;
   avgFuel: number;
@@ -65,6 +76,8 @@ export interface StatisticsData {
 }
 
 export interface FuelListResponse {
-  statisticsData: StatisticsData;
   fuelList: FuelRecord[];
+  nextCursor: string | null;
+  statisticsData: StatisticsData;
+  totalCount: number;
 }

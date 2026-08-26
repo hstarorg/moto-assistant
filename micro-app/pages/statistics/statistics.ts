@@ -41,6 +41,7 @@ const EMPTY_SUMMARY: StatisticsSummaryView = {
 };
 
 const app = getApp<MotoAppOptions>();
+let unsubscribeLoginState: (() => void) | undefined;
 
 const fixed = (value: number, digits = 2): string => value.toFixed(digits);
 
@@ -64,20 +65,20 @@ const toMotoStatisticsView = ({
     };
   }
 
-  const { fuelList, statisticsData } = response;
-  const hasStatistics = fuelList.length >= 2;
+  const { statisticsData, totalCount } = response;
+  const hasStatistics = totalCount >= 2;
   return {
     avgFuelText: hasStatistics ? fixed(statisticsData.avgFuel) : '--',
     avgPriceText: hasStatistics ? fixed(statisticsData.avgPrice) : '--',
     currentMileageText:
-      fuelList.length > 0 ? fixed(statisticsData.totalMileage, 1) : '--',
+      totalCount > 0 ? fixed(statisticsData.currentMileage, 1) : '--',
     hasStatistics,
     id: moto.id,
     loadFailed: false,
     motoLicensePlate: moto.motoLicensePlate,
     motoName: moto.motoName,
     motoPhotoUrl: moto.motoPhotoUrl,
-    recordCountText: String(fuelList.length),
+    recordCountText: String(totalCount),
     totalAmountText: hasStatistics
       ? fixed(statisticsData.totalAmount)
       : '--'
@@ -98,10 +99,10 @@ const buildSummary = (
       return;
     }
 
-    const { fuelList, statisticsData } = response;
-    recordCount += fuelList.length;
+    const { statisticsData, totalCount } = response;
+    recordCount += totalCount;
     totalAmount += statisticsData.totalAmount;
-    if (fuelList.length >= 2 && statisticsData.totalMileage > 0) {
+    if (totalCount >= 2 && statisticsData.totalMileage > 0) {
       weightedMileage += statisticsData.totalMileage;
       weightedFuel += statisticsData.avgFuel * statisticsData.totalMileage;
       weightedPrice += statisticsData.avgPrice * statisticsData.totalMileage;
@@ -131,7 +132,8 @@ Page({
   },
 
   onLoad() {
-    app.loginStateChangedCallback = status => {
+    unsubscribeLoginState?.();
+    unsubscribeLoginState = app.subscribeLoginState(status => {
       this.setData({
         hasLoginFailed:
           status === 'failed' ||
@@ -141,7 +143,7 @@ Page({
       if (status === 'ready') {
         this._loadStatistics();
       }
-    };
+    });
 
     const loginStatus = app.globalData.loginStatus;
     this.setData({
@@ -157,7 +159,8 @@ Page({
   },
 
   onUnload() {
-    app.loginStateChangedCallback = undefined;
+    unsubscribeLoginState?.();
+    unsubscribeLoginState = undefined;
   },
 
   handleLoginRetry() {
@@ -197,7 +200,7 @@ Page({
           motos.map(async moto => {
             try {
               const { data: response } = await ajax.get<FuelListResponse>(
-                `/motos/${moto.id}/fuel`,
+                `/motos/${moto.id}/fuel?limit=1`,
                 { showError: false, showLoading: false }
               );
               return { moto, response };

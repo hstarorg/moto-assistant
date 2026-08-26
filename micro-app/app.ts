@@ -1,7 +1,17 @@
 import ajax = require('./utils/ajax');
-import type { AccountTokenResponse, MotoAppOptions } from './types';
+import type {
+  AccountTokenResponse,
+  LoginStatus,
+  LoginStatusListener,
+  MotoAppOptions
+} from './types';
 
 let loginPromise: Promise<void> | undefined;
+const loginStateListeners = new Set<LoginStatusListener>();
+
+const notifyLoginState = (status: LoginStatus): void => {
+  loginStateListeners.forEach(listener => listener(status));
+};
 
 const getLoginCode = (): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -37,7 +47,7 @@ App<MotoAppOptions>({
     this.globalData.loginStatus = 'loggingIn';
     this.globalData.token = undefined;
     ajax.setToken();
-    this.loginStateChangedCallback?.('loggingIn');
+    notifyLoginState('loggingIn');
 
     loginPromise = getLoginCode()
       .then(code =>
@@ -51,11 +61,11 @@ App<MotoAppOptions>({
         this.globalData.token = data.token;
         this.globalData.loginStatus = 'ready';
         ajax.setToken(data.token);
-        this.loginStateChangedCallback?.('ready');
+        notifyLoginState('ready');
       })
       .catch(error => {
         this.globalData.loginStatus = 'failed';
-        this.loginStateChangedCallback?.('failed');
+        notifyLoginState('failed');
         throw error;
       })
       .finally(() => {
@@ -63,6 +73,13 @@ App<MotoAppOptions>({
       });
 
     return loginPromise;
+  },
+
+  subscribeLoginState(listener) {
+    loginStateListeners.add(listener);
+    return () => {
+      loginStateListeners.delete(listener);
+    };
   },
 
   globalData: {

@@ -20,7 +20,8 @@ interface RequestOptions {
 class ApiError extends Error {
   constructor(
     message: string,
-    readonly statusCode?: number
+    readonly statusCode?: number,
+    readonly code?: string
   ) {
     super(message);
     this.name = 'ApiError';
@@ -51,6 +52,14 @@ const getResponseErrorMessage = (data: unknown): string => {
     return message;
   }
   return typeof error === 'string' ? error : '';
+};
+
+const getResponseErrorCode = (data: unknown): string | undefined => {
+  if (typeof data !== 'object' || data === null) {
+    return undefined;
+  }
+  const code = (data as { code?: unknown }).code;
+  return typeof code === 'string' ? code : undefined;
 };
 
 const buildUrl = (path: string): string => {
@@ -114,7 +123,11 @@ const execute = async <T>(
   const message =
     getResponseErrorMessage(result.data) ||
     (result.statusCode === 401 ? '登录状态已失效' : '请求失败，请稍后重试');
-  throw new ApiError(message, result.statusCode);
+  throw new ApiError(
+    message,
+    result.statusCode,
+    getResponseErrorCode(result.data)
+  );
 };
 
 const run = async <T>(
@@ -177,6 +190,14 @@ const request = <T>(
 };
 
 const ajax = {
+  isApiError(error: unknown, statusCode?: number, code?: string): boolean {
+    return (
+      error instanceof ApiError &&
+      (statusCode === undefined || error.statusCode === statusCode) &&
+      (code === undefined || error.code === code)
+    );
+  },
+
   get<T = WechatMiniprogram.IAnyObject>(
     path: string,
     options?: RequestOptions

@@ -7,6 +7,7 @@ export interface AccountTokenResponse {
 export interface FuelStatisticsResponse {
   avgFuel: number;
   avgPrice: number;
+  currentMileage: number;
   totalAmount: number;
   totalMileage: number;
 }
@@ -25,7 +26,9 @@ export interface FuelRecordResponse {
 
 export interface FuelListResponse {
   fuelList: FuelRecordResponse[];
+  nextCursor: string | null;
   statisticsData: FuelStatisticsResponse;
+  totalCount: number;
 }
 
 export interface MotoResponse {

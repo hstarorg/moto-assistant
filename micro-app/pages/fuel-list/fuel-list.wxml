@@ -1,46 +1,113 @@
 <view class="container">
-  <view class="all-data-view">
+  <view wx:if="{{isLoaded && !loadFailed && fuelList.length > 0}}" class="all-data-view">
     <view class="all-data-view-label">累计数据（不含最后一次记录）</view>
-    <view class="text-block full">总里程：<text>{{statisticsData.totalMileage}} 公里</text></view>
+    <view class="text-block full">当前里程：<text>{{statisticsData.currentMileage}} 公里</text></view>
+    <view class="text-block full">统计里程：<text>{{statisticsData.totalMileage}} 公里</text></view>
     <view class="text-block full">总消费：<text>{{statisticsData.totalAmount}} 元</text></view>
     <view class="text-block full">平均油耗：<text>{{statisticsData.avgFuel}} L/100 公里</text></view>
     <view class="text-block full">每公里单价：<text>{{statisticsData.avgPrice}} 元/公里</text></view>
   </view>
 
-  <scroll-view scroll-y class="scroll-view">
+  <scroll-view
+    scroll-y
+    class="scroll-view"
+    lower-threshold="160"
+    bindscrolltolower="handleLoadMore"
+  >
     <page-shell
-      wx:if="{{isLoaded && fuelList.length === 0}}"
+      wx:if="{{isLoaded && loadFailed}}"
+      state="error"
+      state-size="compact"
+      title="加油记录加载失败"
+      description="请检查网络后重新加载。"
+      action-label="重新加载"
+      action-loading="{{isLoading}}"
+      bindaction="handleDataRetry"
+    ></page-shell>
+    <page-shell
+      wx:elif="{{isLoaded && fuelList.length === 0}}"
       state="empty"
       state-size="compact"
       title="还没有加油记录"
       description="点击“添加记录”录入第一次加油信息"
     ></page-shell>
-    <view class="fuel-item" wx:for="{{fuelList}}" wx:key="id">
-      <view class="text-block">加油时间：<text>{{item.refuelDate}}</text></view>
-      <view class="text-block">当前里程：<text>{{item.currentMileage}} 公里</text></view>
-      <view class="text-block">本次消费：<text>￥{{item.refuelAmount}} 元</text></view>
-      <view class="text-block">本次油价：<text>￥{{item.unitPrice}} 元/L</text></view>
-      <view class="text-block">加油量：<text>{{item.fuelCount}} L</text></view>
-    </view>
+    <block wx:else>
+      <view class="fuel-item" wx:for="{{fuelList}}" wx:key="id">
+        <view class="fuel-item-header">
+          <text class="fuel-item-date">{{item.refuelDate}}</text>
+          <action-button
+            class="fuel-item-edit"
+            variant="text"
+            label="编辑"
+            aria-label="编辑 {{item.refuelDate}} 的加油记录"
+            data-fuel-id="{{item.id}}"
+            bindtap="handleEditFuelClick"
+          ></action-button>
+        </view>
+        <view class="text-block">当前里程：<text>{{item.currentMileage}} 公里</text></view>
+        <view class="text-block">本次消费：<text>￥{{item.refuelAmount}} 元</text></view>
+        <view class="text-block">本次油价：<text>￥{{item.unitPrice}} 元/L</text></view>
+        <view class="text-block">加油量：<text>{{item.fuelCount}} L</text></view>
+        <text class="fuel-item-updated">最后更新：{{item.updatedAt}}</text>
+      </view>
+
+      <view
+        wx:if="{{isLoadingMore}}"
+        class="load-more-state"
+        aria-live="polite"
+      >
+        <action-button
+          class="load-more-action"
+          variant="text"
+          label="正在加载更多"
+          loading="{{true}}"
+          disabled="{{true}}"
+        ></action-button>
+      </view>
+      <view
+        wx:elif="{{loadMoreFailed}}"
+        class="load-more-state"
+        aria-live="polite"
+      >
+        <action-button
+          class="load-more-action"
+          variant="text"
+          label="加载失败，点击重试"
+          aria-label="重新加载更多加油记录"
+          bindtap="handleLoadMoreRetry"
+        ></action-button>
+      </view>
+      <view
+        wx:elif="{{isLoaded && !nextCursor && fuelList.length > 0}}"
+        class="load-more-state load-more-state--complete"
+        aria-live="polite"
+      >
+        已加载全部 {{totalCount}} 条记录
+      </view>
+    </block>
   </scroll-view>
 
   <view class="btn-add-fuel">
     <action-button
       label="添加记录"
       aria-label="添加加油记录"
+      disabled="{{loadFailed || isLoading}}"
       bindtap="handleAddFuelClick"
     ></action-button>
   </view>
 
-  <view wx:if="{{addModalVisible}}" class="popup-view">
-    <view class="popup-view-mask" bindtap="cancelFuelAdd"></view>
+  <view wx:if="{{fuelFormVisible}}" class="popup-view">
+    <view class="popup-view-mask" bindtap="handleFuelFormCancel"></view>
     <form
       class="popup-view-panel"
+      style="max-height: calc(100% - {{keyboardHeight}}px);"
       aria-role="dialog"
-      aria-label="添加加油记录"
-      bindsubmit="handleAddFuelRecord"
+      aria-label="{{editingFuelId ? '编辑加油记录' : '添加加油记录'}}"
+      bindsubmit="handleFuelFormSubmit"
     >
-      <view class="popup-view-header">添加加油信息</view>
+      <view class="popup-view-header">
+        {{editingFuelId ? '编辑加油信息' : '添加加油信息'}}
+      </view>
       <view class="popup-view-body">
         <form-field
           label="加油时间"
@@ -74,8 +141,10 @@
             placeholder="请输入当前行驶里程"
             value="{{fuelModel.currentMileage}}"
             confirm-type="next"
+            adjust-position="{{false}}"
             aria-label="当前里程，必填"
             bindinput="updateCurrentMileage"
+            bindkeyboardheightchange="handleKeyboardHeightChange"
           />
         </form-field>
 
@@ -94,8 +163,10 @@
             placeholder="请输入今日油价"
             value="{{fuelModel.unitPrice}}"
             confirm-type="next"
+            adjust-position="{{false}}"
             aria-label="当前油价，必填"
             bindinput="updateUnitPrice"
+            bindkeyboardheightchange="handleKeyboardHeightChange"
           />
         </form-field>
 
@@ -114,27 +185,44 @@
             placeholder="请输入加油总金额"
             value="{{fuelModel.refuelAmount}}"
             confirm-type="done"
+            adjust-position="{{false}}"
             aria-label="消费金额，必填"
             bindinput="updateRefuelAmount"
+            bindkeyboardheightchange="handleKeyboardHeightChange"
           />
         </form-field>
+
+        <view wx:if="{{editingFuelId}}" class="fuel-delete-section">
+          <text class="fuel-delete-title">删除记录</text>
+          <text class="fuel-delete-description">
+            仅用于删除错误录入的数据，删除后油耗和费用统计会重新计算。
+          </text>
+          <action-button
+            class="fuel-delete-button"
+            variant="danger"
+            label="{{isDeleting ? '删除中' : '删除这条记录'}}"
+            loading="{{isDeleting}}"
+            disabled="{{isSubmitting || isDeleting}}"
+            bindtap="handleDeleteFuelClick"
+          ></action-button>
+        </view>
       </view>
       <view class="popup-view-footer">
         <view class="popup-view-footer-action">
           <action-button
             variant="secondary"
             label="取消"
-            disabled="{{isSubmitting}}"
-            bindtap="cancelFuelAdd"
+            disabled="{{isSubmitting || isDeleting}}"
+            bindtap="handleFuelFormCancel"
           ></action-button>
         </view>
         <view class="popup-view-footer-action">
           <action-button
-            label="{{isSubmitting ? '保存中' : '确定保存'}}"
-            aria-label="确定保存加油记录"
+            label="{{isSubmitting ? '保存中' : (editingFuelId ? '保存修改' : '确定保存')}}"
+            aria-label="{{editingFuelId ? '保存加油记录修改' : '确定保存加油记录'}}"
             form-type="submit"
             loading="{{isSubmitting}}"
-            disabled="{{isSubmitting}}"
+            disabled="{{isSubmitting || isDeleting}}"
           ></action-button>
         </view>
       </view>

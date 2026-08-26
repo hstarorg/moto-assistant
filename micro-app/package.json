@@ -10,10 +10,6 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "dependencies": {
-    "miniprogram-api-promise": "^1.0.4",
-    "weui-miniprogram": "^1.0.3"
-  },
   "devDependencies": {
     "miniprogram-api-typings": "^5.2.2",
     "typescript": "^5.8.2"

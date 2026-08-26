@@ -79,8 +79,7 @@
   line-height: 1.5;
 }
 
-.feature-card,
-.action-card {
+.feature-card {
   overflow: hidden;
   border: 1rpx solid #e2e5e9;
   border-radius: 24rpx;
@@ -104,14 +103,12 @@
 }
 
 .feature-content,
-.action-content,
 .privacy-content {
   min-width: 0;
   flex: 1;
 }
 
 .feature-title,
-.action-title,
 .privacy-title {
   display: block;
   color: #1f2329;
@@ -121,7 +118,6 @@
 }
 
 .feature-desc,
-.action-desc,
 .privacy-desc {
   display: block;
   margin-top: 8rpx;
@@ -130,45 +126,10 @@
   line-height: 1.65;
 }
 
-.feature-divider,
-.action-divider {
+.feature-divider {
   height: 1rpx;
   margin-left: 92rpx;
   background: #eceef1;
-}
-
-.action-row {
-  width: 100%;
-  min-height: 112rpx;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin: 0;
-  padding: 24rpx 28rpx;
-  border: 0;
-  border-radius: 0;
-  background: #fff;
-  color: inherit;
-  line-height: normal;
-  text-align: left;
-}
-
-.action-row::after {
-  border: 0;
-}
-
-.action-row--pressed {
-  background: #f0f7f3;
-}
-
-.action-chevron {
-  width: 16rpx;
-  height: 16rpx;
-  flex: none;
-  margin-left: 24rpx;
-  border-top: 3rpx solid #8a9099;
-  border-right: 3rpx solid #8a9099;
-  transform: rotate(45deg);
 }
 
 .privacy-note {
@@ -213,14 +174,12 @@
 
   .app-name,
   .feature-title,
-  .action-title,
   .privacy-title {
     color: #f3f5f7;
   }
 
   .app-slogan,
-  .feature-desc,
-  .action-desc {
+  .feature-desc {
     color: #b6bbc3;
   }
 
@@ -234,28 +193,17 @@
     color: #aeb4bd;
   }
 
-  .feature-card,
-  .action-card,
-  .action-row {
+  .feature-card {
     border-color: #3a3d42;
     background: #242629;
   }
 
-  .feature-divider,
-  .action-divider {
+  .feature-divider {
     background: #3a3d42;
   }
 
   .feature-index {
     color: #68d49b;
-  }
-
-  .action-row--pressed {
-    background: #303a34;
-  }
-
-  .action-chevron {
-    border-color: #aeb4bd;
   }
 
   .privacy-note {

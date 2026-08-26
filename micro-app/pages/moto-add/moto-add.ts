@@ -1,10 +1,17 @@
 import ajax = require('../../utils/ajax');
 import messageBox = require('../../utils/messageBox');
 import util = require('../../utils/util');
-import type { MotoInfo } from '../../types';
+import type { Moto, MotoInfo } from '../../types';
 
 type MotoInfoPath = `motoInfo.${keyof MotoInfo}`;
 type MotoFormErrors = Record<keyof MotoInfo, string>;
+
+const createEmptyMotoInfo = (): MotoInfo => ({
+  motoPhotoUrl: '',
+  motoName: '',
+  motoBuyDate: '',
+  motoLicensePlate: ''
+});
 
 const createEmptyFormErrors = (): MotoFormErrors => ({
   motoPhotoUrl: '',
@@ -15,21 +22,60 @@ const createEmptyFormErrors = (): MotoFormErrors => ({
 
 Page({
   data: {
-    motoInfo: {
-      motoPhotoUrl: '',
-      motoName: '',
-      motoBuyDate: '',
-      motoLicensePlate: ''
-    } as MotoInfo,
+    motoId: 0,
+    motoInfo: createEmptyMotoInfo(),
+    selectedPhotoPath: '',
     dateNowStr: util.formatTime(new Date(), 'date'),
     formErrors: createEmptyFormErrors(),
+    isArchiving: false,
+    isEditing: false,
+    isPageReady: true,
     isSubmitting: false,
+    loadFailed: false,
     privacyContractName: '《小程序隐私保护指引》',
     showPrivacy: false
   },
 
+  onLoad(options: Record<string, string | undefined>) {
+    const motoId = Number(options.motoId);
+    if (!Number.isInteger(motoId) || motoId <= 0) {
+      return;
+    }
+
+    wx.setNavigationBarTitle({ title: '编辑车辆' });
+    this.setData({ isEditing: true, isPageReady: false, motoId });
+    this.loadMoto();
+  },
+
+  loadMoto() {
+    if (!this.data.isEditing) {
+      return;
+    }
+
+    this.setData({ isPageReady: false, loadFailed: false });
+    void ajax
+      .get<Moto>(`/motos/${this.data.motoId}`, {
+        showError: false,
+        showLoading: false
+      })
+      .then(({ data }) => {
+        this.setData({
+          isPageReady: true,
+          motoInfo: {
+            motoBuyDate: data.motoBuyDate,
+            motoLicensePlate: data.motoLicensePlate,
+            motoName: data.motoName,
+            motoPhotoUrl: data.motoPhotoUrl
+          }
+        });
+      })
+      .catch(() => {
+        this.setData({ loadFailed: true });
+      });
+  },
+
   handleFormSubmit() {
-    if (this.data.isSubmitting) {
+    if (this.data.isSubmitting || this.data.isArchiving) {
       return;
     }
 
@@ -57,25 +103,77 @@ Page({
       return;
     }
 
+    const submitRequest = this.createSubmitRequest(motoInfo);
     this.setData({ isSubmitting: true });
-    void ajax
-      .uploadFile(
-        '/motos',
-        motoInfo.motoPhotoUrl,
-        motoInfo as unknown as WechatMiniprogram.IAnyObject
-      )
+    void submitRequest
       .then(() => {
-        messageBox.toast('添加车辆成功');
+        messageBox.toast(this.data.isEditing ? '车辆信息已更新' : '添加车辆成功');
         setTimeout(() => {
-          wx.reLaunch({
-            url: '../index/index'
-          });
-        }, 1500);
+          if (this.data.isEditing) {
+            this.navigateBackToIndex();
+            return;
+          }
+          wx.reLaunch({ url: '../index/index' });
+        }, 1200);
       })
       .catch(() => undefined)
       .finally(() => {
         this.setData({ isSubmitting: false });
       });
+  },
+
+  createSubmitRequest(motoInfo: MotoInfo) {
+    const formData = motoInfo as unknown as WechatMiniprogram.IAnyObject;
+    if (!this.data.isEditing) {
+      return ajax.uploadFile('/motos', this.data.selectedPhotoPath, formData);
+    }
+    if (this.data.selectedPhotoPath) {
+      return ajax.uploadFile(
+        `/motos/${this.data.motoId}`,
+        this.data.selectedPhotoPath,
+        formData
+      );
+    }
+    return ajax.put(`/motos/${this.data.motoId}`, formData);
+  },
+
+  handleArchive() {
+    if (this.data.isSubmitting || this.data.isArchiving) {
+      return;
+    }
+
+    wx.showModal({
+      title: '归档这辆车？',
+      content: '归档后不会显示在“使用中”，历史加油记录仍会保留。',
+      confirmText: '确认归档',
+      confirmColor: '#a51d1a',
+      success: ({ confirm }) => {
+        if (confirm) {
+          this.archiveMoto();
+        }
+      }
+    });
+  },
+
+  archiveMoto() {
+    this.setData({ isArchiving: true });
+    void ajax
+      .post(`/motos/${this.data.motoId}/archive`, {})
+      .then(() => {
+        messageBox.toast('车辆已归档');
+        setTimeout(() => this.navigateBackToIndex(), 1200);
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        this.setData({ isArchiving: false });
+      });
+  },
+
+  navigateBackToIndex() {
+    wx.navigateBack({
+      delta: 1,
+      fail: () => wx.reLaunch({ url: '../index/index' })
+    });
   },
 
   updateMotoName(event: WechatMiniprogram.Input) {
@@ -159,6 +257,7 @@ Page({
           messageBox.toast('图片不能超过 10 MB');
           return;
         }
+        this.setData({ selectedPhotoPath: file.tempFilePath });
         this.setInputData('motoInfo.motoPhotoUrl', file.tempFilePath);
       },
       fail: ({ errMsg }) => {

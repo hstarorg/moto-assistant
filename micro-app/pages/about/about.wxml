@@ -38,37 +38,6 @@
       </view>
     </view>
 
-    <view class="section">
-      <text class="section-title">服务与支持</text>
-      <view class="action-card">
-        <button
-          class="action-row"
-          hover-class="action-row--pressed"
-          aria-label="查看小程序隐私保护指引"
-          bindtap="openPrivacyContract"
-        >
-          <view class="action-content">
-            <text class="action-title">隐私保护指引</text>
-            <text class="action-desc">了解信息的收集与使用方式</text>
-          </view>
-          <view class="action-chevron" aria-hidden="true"></view>
-        </button>
-        <view class="action-divider"></view>
-        <button
-          class="action-row"
-          hover-class="action-row--pressed"
-          aria-label="提交反馈与建议"
-          open-type="feedback"
-        >
-          <view class="action-content">
-            <text class="action-title">反馈与建议</text>
-            <text class="action-desc">告诉我们你的使用体验</text>
-          </view>
-          <view class="action-chevron" aria-hidden="true"></view>
-        </button>
-      </view>
-    </view>
-
     <view class="privacy-note">
       <view class="privacy-accent" aria-hidden="true"></view>
       <view class="privacy-content">

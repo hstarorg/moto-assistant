@@ -9,6 +9,7 @@ import {
 import type { Response } from 'express';
 
 interface HttpExceptionBody {
+  code?: unknown;
   message?: string | string[];
 }
 
@@ -29,7 +30,24 @@ export class ApiExceptionFilter implements ExceptionFilter {
       );
     }
 
-    response.status(status).json({ error: this.getMessage(exception, status) });
+    const error = this.getMessage(exception, status);
+    const code = this.getCode(exception);
+    response.status(status).json(code ? { code, error } : { error });
+  }
+
+  private getCode(exception: unknown): string | undefined {
+    if (!(exception instanceof HttpException)) {
+      return undefined;
+    }
+
+    const body = exception.getResponse();
+    if (typeof body === 'string') {
+      return undefined;
+    }
+    const code = (body as HttpExceptionBody).code;
+    return typeof code === 'string' && /^[A-Z][A-Z0-9_]{1,63}$/u.test(code)
+      ? code
+      : undefined;
   }
 
   private getMessage(exception: unknown, status: HttpStatus): string {
