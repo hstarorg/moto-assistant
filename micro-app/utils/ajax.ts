@@ -13,6 +13,7 @@ type UnauthorizedHandler = () => Promise<void>;
 
 interface RequestOptions {
   auth?: boolean;
+  retryUnauthorized?: boolean;
   showError?: boolean;
   showLoading?: boolean;
 }
@@ -115,7 +116,12 @@ const execute = async <T>(
   if (result.statusCode >= 200 && result.statusCode < 300) {
     return result;
   }
-  if (result.statusCode === 401 && options.auth !== false && canRetry) {
+  if (
+    result.statusCode === 401 &&
+    options.auth !== false &&
+    options.retryUnauthorized !== false &&
+    canRetry
+  ) {
     await refreshAuthorization();
     return execute(send, options, false);
   }

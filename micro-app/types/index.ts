@@ -81,3 +81,26 @@ export interface FuelListResponse {
   statisticsData: StatisticsData;
   totalCount: number;
 }
+
+export type TipOrderStatus = 'closed' | 'paid' | 'pending' | 'refunded';
+
+export interface TipPaymentParameters {
+  mode: 'short_series_goods';
+  paySig: string;
+  signData: string;
+  signature: string;
+}
+
+export interface CreateTipOrderResponse {
+  amountYuan: number;
+  orderNo: string;
+  payment: TipPaymentParameters;
+}
+
+export interface TipOrderResponse {
+  amountYuan: number;
+  createdAt: string;
+  orderNo: string;
+  paidAt: string | null;
+  status: TipOrderStatus;
+}

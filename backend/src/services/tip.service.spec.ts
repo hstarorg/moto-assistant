@@ -53,7 +53,7 @@ describe('TipService order creation', () => {
       expect.objectContaining({
         environment: 0,
         payerOpenId: 'openid-7',
-        productId: 'tip_1_cny',
+        productId: 'zanshang',
         quantity: 5,
         status: TipOrderStatus.PENDING,
         totalAmount: 500,
@@ -82,7 +82,7 @@ describe('TipService payment notifications', () => {
       environment: 0,
       outTradeNo: 'MA12345678',
       payerOpenId: 'openid-1',
-      productId: 'tip_1_cny',
+      productId: 'zanshang',
       quantity: 5,
       status: TipOrderStatus.PENDING,
       totalAmount: 500,

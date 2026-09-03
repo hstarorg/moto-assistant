@@ -23,7 +23,7 @@ describe('WechatVirtualPayment', () => {
     expect(
       client.createPaymentParameters({
         outTradeNo: 'MA1234567890ABCDEF',
-        productId: 'tip_1_cny',
+        productId: 'zanshang',
         quantity: 5,
         sessionKey: 'session-key',
         unitPrice: 100,
@@ -33,7 +33,7 @@ describe('WechatVirtualPayment', () => {
       paySig:
         'ca9ebb8e315b0cc77dec382a3c2a672aac49c2bf9907cf617583d7131a306b45',
       signData:
-        '{"offerId":"offer-123","buyQuantity":5,"env":0,"currencyType":"CNY","productId":"tip_1_cny","goodsPrice":100,"outTradeNo":"MA1234567890ABCDEF","attach":"MA1234567890ABCDEF"}',
+        '{"offerId":"offer-123","buyQuantity":5,"env":0,"currencyType":"CNY","productId":"zanshang","goodsPrice":100,"outTradeNo":"MA1234567890ABCDEF","attach":"MA1234567890ABCDEF"}',
       signature:
         '32db63d6bbf5d671715035cbf4055785ac215db07ca117b3ecb0043028f60228',
     });

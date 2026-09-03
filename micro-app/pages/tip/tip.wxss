@@ -1,0 +1,398 @@
+.tip-page {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #f7f8fa;
+}
+
+.tip-scroll {
+  min-height: 0;
+  flex: 1;
+}
+
+.tip-content {
+  width: 100%;
+  max-width: 960rpx;
+  margin: 0 auto;
+  padding: 32rpx 30rpx 48rpx;
+  box-sizing: border-box;
+}
+
+.hero-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48rpx 36rpx 44rpx;
+  border: 1rpx solid #dce8e1;
+  border-radius: 28rpx;
+  background: linear-gradient(145deg, #f3faf6 0%, #ffffff 72%);
+  text-align: center;
+}
+
+.hero-mark {
+  width: 88rpx;
+  height: 88rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 28rpx;
+  background: #16794a;
+  box-shadow: 0 10rpx 28rpx rgba(22, 121, 74, 0.18);
+}
+
+.hero-mark-line {
+  width: 40rpx;
+  height: 6rpx;
+  border-radius: 999rpx;
+  background: #fff;
+}
+
+.hero-mark-line--short {
+  width: 24rpx;
+  margin-top: 12rpx;
+}
+
+.hero-title {
+  margin-top: 28rpx;
+  color: #1f2329;
+  font-size: 40rpx;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.hero-description {
+  max-width: 600rpx;
+  margin-top: 14rpx;
+  color: #59616b;
+  font-size: 27rpx;
+  line-height: 1.7;
+}
+
+.amount-section {
+  margin-top: 36rpx;
+}
+
+.section-title,
+.quick-title {
+  display: block;
+  color: #454b54;
+  font-size: 26rpx;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.section-title {
+  margin: 0 8rpx 16rpx;
+}
+
+.amount-field {
+  padding: 28rpx;
+  border: 1rpx solid #e2e5e9;
+  border-radius: 20rpx;
+  background: #fff;
+}
+
+.amount-input-wrap {
+  height: 104rpx;
+  display: flex;
+  align-items: center;
+  padding: 0 24rpx;
+  border: 2rpx solid #cfd5db;
+  border-radius: 16rpx;
+  box-sizing: border-box;
+  background: #fff;
+}
+
+.amount-input-wrap:focus-within {
+  border-color: #16794a;
+  box-shadow: 0 0 0 4rpx rgba(22, 121, 74, 0.12);
+}
+
+.amount-input-wrap--error {
+  border-color: #b42318;
+}
+
+.amount-prefix,
+.amount-unit {
+  flex: none;
+  color: #59616b;
+  font-size: 28rpx;
+  line-height: 1;
+}
+
+.amount-input {
+  min-width: 0;
+  height: 100rpx;
+  flex: 1;
+  margin: 0 16rpx;
+  color: #1f2329;
+  font-size: 44rpx;
+  font-weight: 700;
+  line-height: 100rpx;
+  font-variant-numeric: tabular-nums;
+}
+
+.amount-error,
+.amount-helper {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  line-height: 1.5;
+}
+
+.amount-error {
+  color: #b42318;
+}
+
+.amount-helper {
+  color: #737b85;
+}
+
+.quick-title {
+  margin: 24rpx 8rpx 14rpx;
+}
+
+.quick-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16rpx;
+}
+
+.amount-option {
+  min-width: 0;
+  min-height: 96rpx;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  margin: 0;
+  padding: 24rpx;
+  border: 2rpx solid #dfe3e7;
+  border-radius: 20rpx;
+  background: #fff;
+  color: #30343b;
+  line-height: normal;
+}
+
+.amount-option::after {
+  border: 0;
+}
+
+.amount-option--selected {
+  border-color: #16794a;
+  background: #eaf6ef;
+  color: #12633d;
+}
+
+.amount-option--pressed {
+  opacity: 0.78;
+}
+
+.amount-option[disabled] {
+  opacity: 0.52;
+}
+
+.amount-currency {
+  margin-right: 6rpx;
+  font-size: 26rpx;
+  font-weight: 600;
+}
+
+.amount-value {
+  font-size: 42rpx;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.status-card,
+.notice-card {
+  display: flex;
+  align-items: stretch;
+  margin-top: 28rpx;
+  padding: 26rpx 28rpx;
+  border-radius: 20rpx;
+}
+
+.status-card--success {
+  background: #eaf6ef;
+}
+
+.status-card--pending {
+  background: #fff5dc;
+}
+
+.status-indicator {
+  width: 10rpx;
+  flex: none;
+  margin-right: 20rpx;
+  border-radius: 999rpx;
+  background: #16794a;
+}
+
+.status-card--pending .status-indicator {
+  background: #a05a00;
+}
+
+.status-content,
+.notice-content {
+  min-width: 0;
+  flex: 1;
+}
+
+.status-title,
+.notice-title {
+  display: block;
+  color: #1f2329;
+  font-size: 28rpx;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.status-description,
+.notice-description {
+  display: block;
+  margin-top: 8rpx;
+  color: #536059;
+  font-size: 25rpx;
+  line-height: 1.65;
+}
+
+.status-card--pending .status-description {
+  color: #6f5126;
+}
+
+.notice-card {
+  background: #eef2f4;
+}
+
+.notice-accent {
+  width: 6rpx;
+  flex: none;
+  margin-right: 20rpx;
+  border-radius: 999rpx;
+  background: #7a818c;
+}
+
+.notice-description {
+  color: #606770;
+}
+
+.tip-action {
+  flex: none;
+  padding: 20rpx 30rpx;
+  padding-bottom: calc(20rpx + constant(safe-area-inset-bottom));
+  padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
+  border-top: 1rpx solid #e2e5e9;
+  background: rgba(255, 255, 255, 0.96);
+}
+
+@media (prefers-color-scheme: dark) {
+  .tip-page {
+    background: #1f1f1f;
+  }
+
+  .hero-card {
+    border-color: #31433a;
+    background: linear-gradient(145deg, #20352b 0%, #242629 72%);
+  }
+
+  .hero-mark {
+    background: #239661;
+    box-shadow: none;
+  }
+
+  .hero-title,
+  .amount-input,
+  .status-title,
+  .notice-title {
+    color: #f3f5f7;
+  }
+
+  .hero-description,
+  .amount-prefix,
+  .amount-unit {
+    color: #b6bbc3;
+  }
+
+  .section-title,
+  .quick-title {
+    color: #c4c9d0;
+  }
+
+  .amount-option,
+  .amount-field,
+  .amount-input-wrap {
+    border-color: #4a4e54;
+    background: #242629;
+    color: #f3f5f7;
+  }
+
+  .amount-option--selected {
+    border-color: #68d49b;
+    background: #1d3a2c;
+    color: #91e4b9;
+  }
+
+  .amount-input-wrap:focus-within {
+    border-color: #68d49b;
+    box-shadow: 0 0 0 4rpx rgba(104, 212, 155, 0.15);
+  }
+
+  .amount-input-wrap--error {
+    border-color: #ff8e88;
+  }
+
+  .amount-error {
+    color: #ffaaa6;
+  }
+
+  .amount-helper {
+    color: #aeb4bd;
+  }
+
+  .status-card--success {
+    background: #1d3329;
+  }
+
+  .status-card--pending {
+    background: #3d311d;
+  }
+
+  .status-indicator {
+    background: #68d49b;
+  }
+
+  .status-card--pending .status-indicator {
+    background: #e5a84b;
+  }
+
+  .status-description {
+    color: #b4c7bc;
+  }
+
+  .status-card--pending .status-description {
+    color: #e3c992;
+  }
+
+  .notice-card {
+    background: #2b2d31;
+  }
+
+  .notice-title {
+    color: #e6e9ed;
+  }
+
+  .notice-description {
+    color: #b6bbc3;
+  }
+
+  .notice-accent {
+    background: #8c939d;
+  }
+
+  .tip-action {
+    border-color: #3a3d42;
+    background: rgba(31, 31, 31, 0.96);
+  }
+}

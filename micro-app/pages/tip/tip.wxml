@@ -1,0 +1,95 @@
+<view class="tip-page">
+  <scroll-view class="tip-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="tip-content">
+      <view class="hero-card">
+        <view class="hero-mark" aria-hidden="true">
+          <view class="hero-mark-line"></view>
+          <view class="hero-mark-line hero-mark-line--short"></view>
+        </view>
+        <text class="hero-title">谢谢你的支持</text>
+        <text class="hero-description">
+          如果机车助理对你有帮助，可以自愿赞赏开发者，帮助我们持续维护和改进。
+        </text>
+      </view>
+
+      <view class="amount-section">
+        <text class="section-title">赞赏金额</text>
+        <view class="amount-field">
+          <view class="amount-input-wrap {{amountError ? 'amount-input-wrap--error' : ''}}">
+            <text class="amount-prefix">¥</text>
+            <input
+              class="amount-input"
+              type="number"
+              maxlength="3"
+              value="{{amountInput}}"
+              placeholder="1 - 200"
+              disabled="{{isPaying || paymentState === 'pending'}}"
+              confirm-type="done"
+              aria-label="赞赏金额，1 至 200 元整数"
+              bindinput="updateAmount"
+              bindblur="validateAmount"
+            />
+            <text class="amount-unit">元</text>
+          </view>
+          <text wx:if="{{amountError}}" class="amount-error" aria-role="alert">
+            {{amountError}}
+          </text>
+          <text wx:else class="amount-helper">请输入 1 至 200 元的整数金额</text>
+        </view>
+
+        <text class="quick-title">快捷选择</text>
+        <view class="quick-grid">
+          <button
+            wx:for="{{quickAmounts}}"
+            wx:key="*this"
+            class="amount-option {{selectedAmount === item ? 'amount-option--selected' : ''}}"
+            hover-class="amount-option--pressed"
+            disabled="{{isPaying || paymentState === 'pending'}}"
+            data-amount="{{item}}"
+            aria-label="赞赏 {{item}} 元{{selectedAmount === item ? '，已选择' : ''}}"
+            bindtap="selectQuickAmount"
+          >
+            <text class="amount-currency">¥</text>
+            <text class="amount-value">{{item}}</text>
+          </button>
+        </view>
+      </view>
+
+      <view wx:if="{{paymentState === 'success'}}" class="status-card status-card--success" aria-live="polite">
+        <view class="status-indicator" aria-hidden="true"></view>
+        <view class="status-content">
+          <text class="status-title">赞赏成功，感谢支持</text>
+          <text class="status-description">你的鼓励已经收到，我们会继续认真维护机车助理。</text>
+        </view>
+      </view>
+
+      <view wx:elif="{{paymentState === 'pending'}}" class="status-card status-card--pending" aria-live="polite">
+        <view class="status-indicator" aria-hidden="true"></view>
+        <view class="status-content">
+          <text class="status-title">支付结果正在确认</text>
+          <text class="status-description">微信可能需要一点时间同步结果，你可以稍后重新查询。</text>
+        </view>
+      </view>
+
+      <view class="notice-card">
+        <view class="notice-accent" aria-hidden="true"></view>
+        <view class="notice-content">
+          <text class="notice-title">自愿赞赏说明</text>
+          <text class="notice-description">
+            赞赏不会解锁额外功能，也不会影响你正常使用。支付结果以微信服务端确认为准。
+          </text>
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+
+  <view class="tip-action">
+    <action-button
+      label="{{actionLabel}}"
+      aria-label="{{actionLabel}}"
+      loading="{{isPaying}}"
+      disabled="{{isPaying || !amountInput || amountError}}"
+      bindtap="handlePrimaryAction"
+    ></action-button>
+  </view>
+</view>

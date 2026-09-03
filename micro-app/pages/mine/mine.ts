@@ -18,6 +18,15 @@ Page({
     wx.navigateTo({ url: '../about/about' });
   },
 
+  navigateToTip() {
+    wx.navigateTo({
+      url: '../tip/tip',
+      fail() {
+        messageBox.toast('暂时无法打开赞赏页面');
+      }
+    });
+  },
+
   navigateToArchivedMotos() {
     wx.navigateTo({
       url: '../moto-archived/moto-archived',

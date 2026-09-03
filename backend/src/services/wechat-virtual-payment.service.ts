@@ -14,7 +14,7 @@ import {
 import type { TipPaymentParameters } from './service.types';
 import { ThirdPartyService } from './third-party.service';
 
-export const TIP_PRODUCT_ID = 'tip_1_cny';
+export const TIP_PRODUCT_ID = 'zanshang';
 export const TIP_UNIT_PRICE_CENTS = 100;
 
 @Injectable()
