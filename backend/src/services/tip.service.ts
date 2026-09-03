@@ -64,10 +64,14 @@ export class TipService {
 
     const existing = await this.tipOrders.findOneBy({
       clientRequestId: dto.clientRequestId,
-      userId,
     });
     if (existing) {
-      return this.recreatePayment(existing, dto, wechatSession.sessionKey);
+      return this.recreatePayment(
+        existing,
+        userId,
+        dto,
+        wechatSession.sessionKey,
+      );
     }
 
     const recentPendingCount = await this.tipOrders.countBy({
@@ -109,12 +113,16 @@ export class TipService {
       }
       const concurrent = await this.tipOrders.findOneBy({
         clientRequestId: dto.clientRequestId,
-        userId,
       });
       if (!concurrent) {
         throw error;
       }
-      return this.recreatePayment(concurrent, dto, wechatSession.sessionKey);
+      return this.recreatePayment(
+        concurrent,
+        userId,
+        dto,
+        wechatSession.sessionKey,
+      );
     }
   }
 
@@ -215,12 +223,8 @@ export class TipService {
         locked.paidAt = new Date(remoteOrder.paidTime * 1000);
         changed = true;
       }
-      if (
-        nextStatus === TipOrderStatus.REFUNDED &&
-        remoteOrder.paidTime > 0 &&
-        !locked.refundedAt
-      ) {
-        locked.refundedAt = new Date(remoteOrder.paidTime * 1000);
+      if (nextStatus === TipOrderStatus.REFUNDED && !locked.refundedAt) {
+        locked.refundedAt = new Date();
         changed = true;
       }
       return changed ? orders.save(locked) : locked;
@@ -287,9 +291,16 @@ export class TipService {
 
   private recreatePayment(
     order: TipOrderEntity,
+    userId: number,
     dto: CreateTipOrderDto,
     sessionKey: string,
   ): CreateTipOrderResponse {
+    if (order.userId !== userId) {
+      throw new ConflictException({
+        code: 'TIP_REQUEST_DUPLICATE',
+        message: '赞赏请求号已被使用，请重新操作',
+      });
+    }
     if (order.totalAmount !== dto.amountYuan * TIP_UNIT_PRICE_CENTS) {
       throw new ConflictException({
         code: 'TIP_REQUEST_DUPLICATE',
