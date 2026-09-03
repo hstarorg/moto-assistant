@@ -22,12 +22,12 @@ export class WechatMessageController {
   }
 
   @Post()
-  @Header('Content-Type', 'application/xml; charset=utf-8')
+  @Header('Content-Type', 'application/json; charset=utf-8')
   @HttpCode(HttpStatus.OK)
   receive(
     @Query() query: WechatMessageQueryDto,
     @Body() body: unknown,
-  ): Promise<string> {
+  ): Promise<{ ErrCode: 0; ErrMsg: 'success' }> {
     return this.wechatMessageService.handlePush(query, body);
   }
 }

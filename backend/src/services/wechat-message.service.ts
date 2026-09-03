@@ -1,5 +1,4 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { XMLParser } from 'fast-xml-parser';
 import type { WechatMessageQueryDto } from '../dto/wechat-message.dto';
 import { TipService } from './tip.service';
 import { WechatVirtualPaymentService } from './wechat-virtual-payment.service';
@@ -9,12 +8,6 @@ type WechatMessagePayload = Record<string, unknown>;
 @Injectable()
 export class WechatMessageService {
   private readonly logger = new Logger(WechatMessageService.name);
-  private readonly parser = new XMLParser({
-    ignoreAttributes: true,
-    parseTagValue: false,
-    processEntities: false,
-    trimValues: true,
-  });
 
   constructor(
     private readonly tipService: TipService,
@@ -38,14 +31,13 @@ export class WechatMessageService {
   async handlePush(
     query: WechatMessageQueryDto,
     body: unknown,
-  ): Promise<string> {
+  ): Promise<{ ErrCode: 0; ErrMsg: 'success' }> {
     this.virtualPayment.assertEnabled();
-    if (typeof body !== 'string' || body.length === 0) {
+    if (!this.isPayload(body)) {
       throw new BadRequestException('微信消息格式不正确');
     }
 
-    const envelope = this.parseXml(body);
-    const encrypted = this.readOptionalString(envelope, ['Encrypt']);
+    const encrypted = this.readOptionalString(body, ['Encrypt']);
     if (!encrypted) {
       throw new BadRequestException('微信消息必须使用安全模式');
     }
@@ -55,7 +47,7 @@ export class WechatMessageService {
       query.timestamp,
       query.nonce,
     );
-    const payload = this.parseXml(decrypted);
+    const payload = this.parseJson(decrypted);
 
     const event = this.readOptionalString(payload, ['Event', 'event']);
     if (event === 'xpay_goods_deliver_notify') {
@@ -66,28 +58,25 @@ export class WechatMessageService {
       this.logger.warn(`已忽略微信消息事件: ${event ?? 'unknown'}`);
     }
 
-    return '<xml><ErrCode>0</ErrCode><ErrMsg><![CDATA[success]]></ErrMsg></xml>';
+    return { ErrCode: 0, ErrMsg: 'success' };
   }
 
-  private parseXml(value: string): WechatMessagePayload {
+  private parseJson(value: string): WechatMessagePayload {
     let parsed: unknown;
     try {
-      parsed = this.parser.parse(value) as unknown;
+      parsed = JSON.parse(value) as unknown;
     } catch {
       throw new BadRequestException('微信消息格式不正确');
     }
 
-    if (
-      typeof parsed !== 'object' ||
-      parsed === null ||
-      !('xml' in parsed) ||
-      typeof parsed.xml !== 'object' ||
-      parsed.xml === null ||
-      Array.isArray(parsed.xml)
-    ) {
+    if (!this.isPayload(parsed)) {
       throw new BadRequestException('微信消息格式不正确');
     }
-    return parsed.xml as WechatMessagePayload;
+    return parsed;
+  }
+
+  private isPayload(value: unknown): value is WechatMessagePayload {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
   }
 
   private readOptionalString(

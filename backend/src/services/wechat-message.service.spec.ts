@@ -24,15 +24,15 @@ describe('WechatMessageService', () => {
     );
   });
 
-  it('decrypts XML and uses the delivery webhook only as a refresh hint', async () => {
-    virtualPayment.decryptMessage.mockReturnValue(`
-      <xml>
-        <Event><![CDATA[xpay_goods_deliver_notify]]></Event>
-        <OpenId><![CDATA[untrusted-openid]]></OpenId>
-        <OutTradeNo><![CDATA[MA12345678]]></OutTradeNo>
-        <GoodsInfo><ActualPrice>1</ActualPrice></GoodsInfo>
-      </xml>
-    `);
+  it('decrypts JSON and uses the delivery webhook only as a refresh hint', async () => {
+    virtualPayment.decryptMessage.mockReturnValue(
+      JSON.stringify({
+        Event: 'xpay_goods_deliver_notify',
+        GoodsInfo: { ActualPrice: 1 },
+        OpenId: 'untrusted-openid',
+        OutTradeNo: 'MA12345678',
+      }),
+    );
 
     await expect(
       service.handlePush(
@@ -42,11 +42,9 @@ describe('WechatMessageService', () => {
           nonce: 'nonce',
           timestamp: '1700000000',
         },
-        '<xml><Encrypt><![CDATA[encrypted-value]]></Encrypt></xml>',
+        { Encrypt: 'encrypted-value' },
       ),
-    ).resolves.toBe(
-      '<xml><ErrCode>0</ErrCode><ErrMsg><![CDATA[success]]></ErrMsg></xml>',
-    );
+    ).resolves.toEqual({ ErrCode: 0, ErrMsg: 'success' });
     expect(virtualPayment.decryptMessage).toHaveBeenCalledWith(
       'encrypted-value',
       'message-signature',
@@ -55,7 +53,7 @@ describe('WechatMessageService', () => {
     );
     expect(tipService.handleGoodsDeliver).toHaveBeenCalledWith({
       Event: 'xpay_goods_deliver_notify',
-      GoodsInfo: { ActualPrice: '1' },
+      GoodsInfo: { ActualPrice: 1 },
       OpenId: 'untrusted-openid',
       OutTradeNo: 'MA12345678',
     });
@@ -63,7 +61,10 @@ describe('WechatMessageService', () => {
 
   it('dispatches an encrypted refund reminder', async () => {
     virtualPayment.decryptMessage.mockReturnValue(
-      '<xml><Event>xpay_refund_notify</Event><MchOrderId>MA12345678</MchOrderId></xml>',
+      JSON.stringify({
+        Event: 'xpay_refund_notify',
+        MchOrderId: 'MA12345678',
+      }),
     );
 
     await service.handlePush(
@@ -73,7 +74,7 @@ describe('WechatMessageService', () => {
         nonce: 'nonce',
         timestamp: '1700000000',
       },
-      '<xml><Encrypt><![CDATA[encrypted-value]]></Encrypt></xml>',
+      { Encrypt: 'encrypted-value' },
     );
 
     expect(tipService.handleRefund).toHaveBeenCalledWith({
@@ -86,7 +87,23 @@ describe('WechatMessageService', () => {
     await expect(
       service.handlePush(
         { nonce: 'nonce', signature: 'signature', timestamp: '1700000000' },
-        '<xml><Event>xpay_goods_deliver_notify</Event></xml>',
+        { Event: 'xpay_goods_deliver_notify' },
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('rejects decrypted content that is not a JSON object', async () => {
+    virtualPayment.decryptMessage.mockReturnValue('[]');
+
+    await expect(
+      service.handlePush(
+        {
+          encrypt_type: 'aes',
+          msg_signature: 'message-signature',
+          nonce: 'nonce',
+          timestamp: '1700000000',
+        },
+        { Encrypt: 'encrypted-value' },
       ),
     ).rejects.toBeInstanceOf(BadRequestException);
   });

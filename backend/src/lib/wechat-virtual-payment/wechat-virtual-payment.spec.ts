@@ -138,9 +138,8 @@ describe('WechatVirtualPayment', () => {
   it('decrypts a safe-mode message and validates its embedded AppID', () => {
     const timestamp = '1700000000';
     const nonce = 'nonce-2';
-    const xml =
-      '<xml><Event><![CDATA[xpay_goods_deliver_notify]]></Event></xml>';
-    const encrypted = encrypt(xml, config.appId);
+    const message = JSON.stringify({ Event: 'xpay_goods_deliver_notify' });
+    const encrypted = encrypt(message, config.appId);
     const signature = createHash('sha1')
       .update(
         [config.messageToken, timestamp, nonce, encrypted].sort().join(''),
@@ -149,13 +148,13 @@ describe('WechatVirtualPayment', () => {
 
     expect(
       createClient().decryptMessage(encrypted, signature, timestamp, nonce),
-    ).toBe(xml);
+    ).toBe(message);
   });
 
   it('rejects a message encrypted for another AppID', () => {
     const timestamp = '1700000000';
     const nonce = 'nonce-3';
-    const encrypted = encrypt('<xml />', 'wx-another-app');
+    const encrypted = encrypt('{}', 'wx-another-app');
     const signature = createHash('sha1')
       .update(
         [config.messageToken, timestamp, nonce, encrypted].sort().join(''),

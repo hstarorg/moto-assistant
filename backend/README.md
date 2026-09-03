@@ -22,8 +22,14 @@ Cloudflare R2 Bucket 中，并通过短期预签名 URL 访问。
 WECHAT_VPAY_CONFIG='<offerId>|<appKey>|<sandbox或production>|<messageToken>|<43位EncodingAESKey>'
 ```
 
+其中 `messageToken` 和 `EncodingAESKey` 来自小程序后台的「开发」→「开发管理」→
+「开发设置」→「消息推送」：Token 由开发者自行生成并填写，EncodingAESKey 在该页面
+点击“随机生成”获得。两者必须与服务端配置完全一致；这里不是填写 AppSecret、虚拟支付
+AppKey 或微信支付 APIv3 Key。完整配置步骤和安全要求见
+[`src/lib/wechat-virtual-payment/README.md`](src/lib/wechat-virtual-payment/README.md#messagetoken-和-encodingaeskey-从哪里来)。
+
 单笔赞赏上限固定为 200 元，单用户十分钟内最多创建 5 个待支付订单。消息推送
-固定使用安全模式。生产环境必须使用 `production` 和现网 AppKey。
+固定使用安全模式和 JSON 数据格式。生产环境必须使用 `production` 和现网 AppKey。
 
 ```sh
 pnpm install
