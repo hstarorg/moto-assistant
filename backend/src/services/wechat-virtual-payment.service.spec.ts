@@ -40,11 +40,11 @@ describe('WechatVirtualPaymentService', () => {
     expect(service.createPaymentParameters(order, 'session-key')).toEqual({
       mode: 'short_series_goods',
       paySig:
-        'ca9ebb8e315b0cc77dec382a3c2a672aac49c2bf9907cf617583d7131a306b45',
+        'a1d3e03c9f7bcf6cf43150c83f7cd2e88e028bc79a6d4d15eb3561c510ba3853',
       signData:
         '{"offerId":"offer-123","buyQuantity":5,"env":0,"currencyType":"CNY","productId":"zanshang","goodsPrice":100,"outTradeNo":"MA1234567890ABCDEF","attach":"MA1234567890ABCDEF"}',
       signature:
-        '32db63d6bbf5d671715035cbf4055785ac215db07ca117b3ecb0043028f60228',
+        '3e335df9dd72aa7d1d96f6adedafc837206744fe171380c903b13a7276c2a616',
     });
   });
 
