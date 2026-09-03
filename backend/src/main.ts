@@ -1,5 +1,6 @@
 import { BadRequestException, Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { text } from 'express';
 import { AppModule } from './app.module';
 import { ApiExceptionFilter } from './common';
 
@@ -8,6 +9,10 @@ const logger = new Logger('Bootstrap');
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  app.use(
+    '/api/v1/wechat/messages',
+    text({ limit: '256kb', type: ['application/xml', 'text/xml'] }),
+  );
   app.setGlobalPrefix('api/v1');
   app.useGlobalFilters(new ApiExceptionFilter());
   app.useGlobalPipes(

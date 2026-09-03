@@ -15,7 +15,22 @@ import { randomUUID } from 'node:crypto';
 import { extname } from 'node:path';
 
 interface WechatSessionResponse {
+  errcode?: number;
+  errmsg?: string;
   openid?: string;
+  session_key?: string;
+}
+
+interface WechatAccessTokenResponse {
+  access_token?: string;
+  errcode?: number;
+  errmsg?: string;
+  expires_in?: number;
+}
+
+export interface WechatSession {
+  openId: string;
+  sessionKey: string;
 }
 
 interface WechatConfig {
@@ -33,6 +48,8 @@ interface R2Config {
 
 @Injectable()
 export class ThirdPartyService implements OnApplicationShutdown {
+  private accessToken?: { expiresAt: number; value: string };
+  private accessTokenRequest?: Promise<string>;
   private readonly r2: R2Config;
   private readonly r2Client: S3Client;
   private readonly wechat: WechatConfig;
@@ -57,11 +74,30 @@ export class ThirdPartyService implements OnApplicationShutdown {
   }
 
   async getWechatOpenId(code: string): Promise<string> {
-    return this.getWechatOpenIdFromCode(
+    return (await this.getWechatSession(code)).openId;
+  }
+
+  async getWechatSession(code: string): Promise<WechatSession> {
+    return this.getWechatSessionFromCode(
       code,
       this.wechat.appId,
       this.wechat.appSecret,
     );
+  }
+
+  async getWechatAccessToken(): Promise<string> {
+    if (
+      this.accessToken &&
+      this.accessToken.expiresAt > Date.now() + 60 * 1000
+    ) {
+      return this.accessToken.value;
+    }
+    if (!this.accessTokenRequest) {
+      this.accessTokenRequest = this.requestWechatAccessToken().finally(() => {
+        this.accessTokenRequest = undefined;
+      });
+    }
+    return this.accessTokenRequest;
   }
 
   async uploadImage(file: Express.Multer.File): Promise<string> {
@@ -94,11 +130,11 @@ export class ThirdPartyService implements OnApplicationShutdown {
     return key;
   }
 
-  private async getWechatOpenIdFromCode(
+  private async getWechatSessionFromCode(
     code: string,
     appId: string,
     appSecret: string,
-  ): Promise<string> {
+  ): Promise<WechatSession> {
     const url = new URL('https://api.weixin.qq.com/sns/jscode2session');
     url.search = new URLSearchParams({
       appid: appId,
@@ -119,10 +155,46 @@ export class ThirdPartyService implements OnApplicationShutdown {
     }
 
     const session = (await response.json()) as WechatSessionResponse;
-    if (!session.openid) {
-      throw new ForbiddenException('微信登录凭证无效');
+    if (!session.openid || !session.session_key) {
+      throw new ForbiddenException({
+        code: 'WECHAT_LOGIN_INVALID',
+        message: '微信登录凭证无效',
+      });
     }
-    return session.openid;
+    return { openId: session.openid, sessionKey: session.session_key };
+  }
+
+  private async requestWechatAccessToken(): Promise<string> {
+    const url = new URL('https://api.weixin.qq.com/cgi-bin/token');
+    url.search = new URLSearchParams({
+      appid: this.wechat.appId,
+      grant_type: 'client_credential',
+      secret: this.wechat.appSecret,
+    }).toString();
+
+    let response: Response;
+    try {
+      response = await fetch(url);
+    } catch {
+      throw new BadGatewayException('微信服务暂时不可用');
+    }
+    if (!response.ok) {
+      throw new BadGatewayException('微信服务暂时不可用');
+    }
+
+    const result = (await response.json()) as WechatAccessTokenResponse;
+    if (
+      !result.access_token ||
+      !Number.isSafeInteger(result.expires_in) ||
+      (result.expires_in ?? 0) <= 0
+    ) {
+      throw new BadGatewayException('微信服务暂时不可用');
+    }
+    this.accessToken = {
+      expiresAt: Date.now() + (result.expires_in ?? 0) * 1000,
+      value: result.access_token,
+    };
+    return result.access_token;
   }
 
   private createImageKey(originalName: string, prefix: string): string {
