@@ -1,22 +1,23 @@
-# 本地开发
+# Moto Assistant 小程序
 
-```bash
-cloudflared tunnel run jay-local-mac
+微信原生小程序，使用 TypeScript，提供车辆管理、加油记录、油耗统计和支持开发者功能。
+
+## 本地开发
+
+```sh
+pnpm install
 ```
 
-## 支付结果恢复与排障
+使用微信开发者工具导入本目录，确认 AppID，并在 `config.ts` 中配置 API 地址。
+`develop` 使用开发 API，`trial` 和 `release` 使用正式 HTTPS API。
 
-赞赏订单在调起微信支付前保存到本地，最多保留 24 小时；重新查询不延长保存时间。
-查询前等待登录完成，收到 404（不存在或不属于当前账号）或支付环境不匹配时退出旧记录。
-网络、服务端或登录异常会保留待确认订单并展示对应提示，可使用“稍后查询”返回后再查。
-本地记录到期时提示先核对微信账单；以上操作不修改服务端订单的支付状态。
+个人联调设置放在已忽略的 `project.private.config.json`，不要关闭共享配置的域名校验。
 
-创建订单请求超时为 10 秒，查询为 8 秒。遇到查询异常立即结束本轮，保留重试入口，
-不在网络故障时持续发送轮询请求。
+## 检查
 
-`wx.getRealtimeLogManager()` 的 `tip_payment_failure` 日志记录创建、调起支付和查询失败：
-只包含 `stage`、业务 `orderNo`（如有）以及实际微信数值错误码或服务端稳定错误码 `code`。
-可在微信后台的小程序实时日志中按订单号排查；不记录 signData、paySig、signature、登录 code、
-token 或微信原始 errMsg。日志能力不可用时不影响支付恢复。
+```sh
+pnpm typecheck
+pnpm test
+```
 
-验证命令：`pnpm typecheck`、`pnpm test`。
+域名配置、支付配置和发布步骤见[部署指南](../docs/deployment.md)。
