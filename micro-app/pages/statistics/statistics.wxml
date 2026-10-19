@@ -166,6 +166,17 @@
             </view>
           </view>
         </button>
+
+        <button
+          wx:if="{{isLoaded && !loadFailed && !partialFailure}}"
+          class="support-entry"
+          hover-class="support-entry--pressed"
+          aria-label="记录有帮助？自愿赞赏，支持开发者"
+          bindtap="navigateToTip"
+        >
+          <text>记录有帮助？</text>
+          <text class="support-entry-link">支持一下开发者</text>
+        </button>
       </block>
     </view>
   </scroll-view>
