@@ -20,12 +20,12 @@ export class WechatMessageService {
       throw new BadRequestException('微信验证参数不正确');
     }
 
-    return this.virtualPayment.decryptMessage(
-      query.echostr,
-      query.msg_signature,
+    this.virtualPayment.verifyUrlSignature(
+      query.signature,
       query.timestamp,
       query.nonce,
     );
+    return query.echostr;
   }
 
   async handlePush(

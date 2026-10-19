@@ -6,6 +6,7 @@ export type {
   WechatVirtualPaymentDependencies,
   WechatVirtualPaymentInput,
   WechatVirtualPaymentOrder,
+  WechatVirtualPaymentRefundQueryInput,
   WechatVirtualPaymentParameters,
   WechatVirtualPaymentQueryInput,
 } from './wechat-virtual-payment';

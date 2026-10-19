@@ -4,6 +4,8 @@
 
 - 生成 `wx.requestVirtualPayment` 所需的 `signData`、`paySig` 和 `signature`。
 - 调用 `/xpay/query_order` 主动查询并校验微信订单。
+- 主动查询退款单，并区分支付单与退款单。
+- 调用 `/xpay/notify_provide_goods` 完成异常情况下的发货确认。
 - 验证、解密微信消息安全模式报文。
 
 该客户端不依赖 NestJS、TypeORM 或具体数据库，可以在不同 Node.js 服务端应用中复用。
@@ -61,7 +63,9 @@ APIv3 Key。
 
 首次保存时，微信会向上述 URL 发起验证请求。应先将服务端部署到公网 HTTPS 地址，配置好
 `appId`、`messageToken` 和 `encodingAesKey` 并启动服务，再在微信后台保存消息推送配置；
-否则服务端无法验签和解密 `echostr`，微信后台会提示验证失败。
+GET 验证请求使用 `signature`：对 Token、timestamp、nonce 排序拼接后计算 SHA-1，
+验签通过后原样返回 `echostr`，不对 `echostr` 进行 AES 解密。POST 安全模式消息才使用
+`msg_signature` 和 EncodingAESKey 验签、解密。
 
 两个值必须与微信后台逐字符一致，不要添加引号、空格或换行。它们是服务端密钥，不能
 提交到仓库、下发到小程序、打印到日志或暴露在错误响应中。更换其中任意一个值时，微信
@@ -79,6 +83,32 @@ APIv3 Key。
 主动调用微信 `/xpay/query_order`，并校验订单号、环境和订单金额。微信 webhook
 只能作为触发查单的提醒，不能作为支付或退款结果的数据源；业务状态必须以该接口的
 返回结果为准。
+
+返回值包含 `orderType`（0：普通支付，7：Apple 支付）和 `leftFee`（原支付单剩余可退金额）。
+该接口只接受支付单，退款单应使用 `queryRefundOrder`，避免将退款流水写入支付流水字段。
+
+### `queryRefundOrder(input)`
+
+使用本地订单的 `openId` 和回调中用于定位的 `orderId`（MchRefundId）或 `wxOrderId`
+（WxRefundId）主动查询退款单；两者至少提供一个。`totalAmount` 为原支付单金额。
+SDK 校验退款单号、环境、订单类型（1：普通退款，8：Apple 退款）和退款金额范围。
+回调中的 RefundFee、RetCode 和退款时间不作为事实来源。
+
+退款状态 5 仅表示商户扣款完成，状态 7 表示退款失败，只有状态 8 表示用户已收到退款。
+业务层还须核对原支付单的剩余金额与支付渠道，不能仅凭回调或一笔退款查询修改任意支付单。
+本应用只在全额退款完成并核对原单 `leftFee=0` 后标记 `refunded`；部分退款仍保持 `paid`，
+`refundedAt` 表示服务端首次确认全额退款完成的时间。
+
+### `notifyProvideGoods(orderId)`
+
+仅在主动查单确认付款且本地业务事务提交后调用。该接口按官方协议只携带 access_token，
+不添加 pay_sig。正常发货推送已成功应答时无需额外调用；推送丢失或确认失败时用于补偿。
+查询到状态 4（已发货）后不再发送确认。微信网络请求设置 5 秒超时，失败由调用方重试。
+
+### `verifyUrlSignature(signature, timestamp, nonce)`
+
+验证首次 GET URL 校验签名，失败使用 `MESSAGE_SIGNATURE_INVALID`；成功后由调用方
+原样返回请求中的 echostr。协议参见[微信消息推送文档](https://developers.weixin.qq.com/miniprogram/dev/framework/server-ability/message-push.html)。
 
 ### `decryptMessage(encrypted, signature, timestamp, nonce)`
 
@@ -121,6 +151,9 @@ try {
 | `QUERY_RESPONSE_INVALID`    | `WVP_QUERY_RESPONSE_INVALID`    | 查单响应无法解析             |
 | `QUERY_FAILED`              | `WVP_QUERY_FAILED`              | 微信查单接口返回业务错误     |
 | `QUERY_ORDER_INVALID`       | `WVP_QUERY_ORDER_INVALID`       | 微信订单与本地预期不一致     |
+| `PROVIDE_REQUEST_FAILED`    | `WVP_PROVIDE_REQUEST_FAILED`    | 发货确认网络请求失败         |
+| `PROVIDE_RESPONSE_INVALID`  | `WVP_PROVIDE_RESPONSE_INVALID`  | 发货确认响应无法解析         |
+| `PROVIDE_FAILED`            | `WVP_PROVIDE_FAILED`            | 微信发货确认接口返回业务错误 |
 | `MESSAGE_SIGNATURE_INVALID` | `WVP_MESSAGE_SIGNATURE_INVALID` | 消息签名缺失或校验失败       |
 | `MESSAGE_DECRYPT_FAILED`    | `WVP_MESSAGE_DECRYPT_FAILED`    | 安全模式消息解密失败         |
 | `MESSAGE_PADDING_INVALID`   | `WVP_MESSAGE_PADDING_INVALID`   | 解密消息的 PKCS#7 填充不正确 |

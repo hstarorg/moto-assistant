@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import type { TipService } from './tip.service';
 import { WechatMessageService } from './wechat-message.service';
 import type { WechatVirtualPaymentService } from './wechat-virtual-payment.service';
@@ -13,14 +13,41 @@ describe('WechatMessageService', () => {
   const virtualPayment = {
     assertEnabled: jest.fn(),
     decryptMessage: jest.fn(),
+    verifyUrlSignature: jest.fn(),
   };
   let service: WechatMessageService;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
     service = new WechatMessageService(
       tipService as unknown as TipService,
       virtualPayment as unknown as WechatVirtualPaymentService,
+    );
+  });
+
+  it('verifies the URL signature and returns echostr without decrypting it', () => {
+    expect(
+      service.verifyUrl({
+        echostr: '4375120948345356249',
+        signature: 'f464b24fc39322e44b38aa78f5edd27bd1441696',
+        timestamp: '1714036504',
+        nonce: '1514711492',
+      }),
+    ).toBe('4375120948345356249');
+    expect(virtualPayment.verifyUrlSignature).toHaveBeenCalledWith(
+      'f464b24fc39322e44b38aa78f5edd27bd1441696',
+      '1714036504',
+      '1514711492',
+    );
+    expect(virtualPayment.decryptMessage).not.toHaveBeenCalled();
+  });
+
+  it('rejects an invalid URL verification signature', () => {
+    virtualPayment.verifyUrlSignature.mockImplementation(() => {
+      throw new ForbiddenException();
+    });
+    expect(() => service.verifyUrl({ echostr: 'random' })).toThrow(
+      ForbiddenException,
     );
   });
 

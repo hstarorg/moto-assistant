@@ -1,4 +1,5 @@
 import { TipOrderStatus } from '../constants';
+import { ServiceUnavailableException } from '@nestjs/common';
 import type { TipOrderEntity } from '../database';
 import { TipService } from './tip.service';
 
@@ -208,10 +209,17 @@ describe('TipService payment notifications', () => {
       ),
     };
     const virtualPayment = {
+      queryRefundOrder: jest.fn().mockResolvedValue({
+        orderType: 1,
+        refundFee: 500,
+        status: 8,
+      }),
       queryOrder: jest
         .fn()
         .mockResolvedValueOnce({
           orderFee: 500,
+          orderType: 0,
+          leftFee: 500,
           orderId: order.outTradeNo,
           paidFee: 500,
           paidTime: 1700000000,
@@ -221,6 +229,8 @@ describe('TipService payment notifications', () => {
         })
         .mockResolvedValueOnce({
           orderFee: 500,
+          orderType: 0,
+          leftFee: 500,
           orderId: order.outTradeNo,
           paidFee: 500,
           paidTime: 1700000000,
@@ -230,20 +240,24 @@ describe('TipService payment notifications', () => {
         })
         .mockResolvedValueOnce({
           orderFee: 500,
+          orderType: 0,
+          leftFee: 0,
           orderId: order.outTradeNo,
           paidFee: 500,
-          paidTime: 1700000100,
-          refundFee: 500,
-          status: 5,
+          paidTime: 1700000000,
+          refundFee: 0,
+          status: 4,
           wxOrderId: 'wx-order-1',
         })
         .mockResolvedValueOnce({
           orderFee: 500,
+          orderType: 0,
+          leftFee: 0,
           orderId: order.outTradeNo,
           paidFee: 500,
-          paidTime: 1700000100,
-          refundFee: 500,
-          status: 5,
+          paidTime: 1700000000,
+          refundFee: 0,
+          status: 4,
           wxOrderId: 'wx-order-1',
         }),
     };
@@ -277,11 +291,13 @@ describe('TipService payment notifications', () => {
     jest.setSystemTime(new Date('2026-09-03T08:00:00.000Z'));
     await service.handleRefund({
       MchOrderId: order.outTradeNo,
+      MchRefundId: 'REFUND12345678',
       RefundFee: '1',
     });
     jest.setSystemTime(new Date('2026-09-03T09:00:00.000Z'));
     await service.handleRefund({
       MchOrderId: order.outTradeNo,
+      MchRefundId: 'REFUND12345678',
     });
 
     expect(order).toEqual(
@@ -291,5 +307,191 @@ describe('TipService payment notifications', () => {
       }),
     );
     expect(orderRepository.save).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('TipService synchronization and compensation', () => {
+  function fixture() {
+    const order = {
+      id: 1,
+      userId: 7,
+      environment: 0,
+      outTradeNo: 'MA12345678',
+      totalAmount: 500,
+      status: TipOrderStatus.PENDING,
+      createdAt: new Date(),
+    } as TipOrderEntity;
+    const remote = {
+      leftFee: 500,
+      orderFee: 500,
+      orderId: order.outTradeNo,
+      orderType: 0,
+      paidFee: 500,
+      paidTime: 1700000000,
+      refundFee: 0,
+      status: 2,
+      wxOrderId: 'wx-order-1',
+    };
+    const refund = {
+      orderType: 1,
+      refundFee: 500,
+      status: 5,
+    };
+    const repository = {
+      findOne: jest.fn().mockResolvedValue(order),
+      save: jest.fn((value: TipOrderEntity) => Promise.resolve(value)),
+    };
+    const tipOrders = {
+      find: jest.fn().mockResolvedValue([order]),
+      findOne: jest.fn().mockResolvedValue(order),
+      findOneBy: jest.fn().mockResolvedValue(order),
+    };
+    const dataSource = {
+      transaction: jest.fn(
+        async (
+          callback: (manager: {
+            getRepository: () => typeof repository;
+          }) => Promise<TipOrderEntity>,
+        ) => callback({ getRepository: () => repository }),
+      ),
+    };
+    const payment = {
+      getEnvironment: jest.fn().mockReturnValue(0),
+      notifyProvideGoods: jest.fn().mockResolvedValue(undefined),
+      queryOrder: jest.fn().mockImplementation(() => Promise.resolve(remote)),
+      queryRefundOrder: jest
+        .fn()
+        .mockImplementation(() => Promise.resolve(refund)),
+    };
+    const service = new TipService(
+      tipOrders as never,
+      {} as never,
+      dataSource as never,
+      {} as never,
+      payment as never,
+    );
+    return {
+      service,
+      order,
+      remote,
+      refund,
+      repository,
+      tipOrders,
+      dataSource,
+      payment,
+    };
+  }
+
+  it('keeps a merchant-debited refund non-terminal and accepts a later failure', async () => {
+    const f = fixture();
+    f.remote.status = 5;
+    f.remote.leftFee = 0;
+    const payload = {
+      MchOrderId: f.order.outTradeNo,
+      MchRefundId: 'REFUND12345678',
+      RetCode: 0,
+      RefundFee: 500,
+    };
+    await expect(f.service.handleRefund(payload)).rejects.toBeInstanceOf(
+      ServiceUnavailableException,
+    );
+    expect(f.order.status).toBe(TipOrderStatus.PAID);
+    expect(f.order.refundedAt).toBeUndefined();
+    f.remote.status = 7;
+    f.remote.leftFee = 500;
+    f.refund.status = 7;
+    await f.service.handleRefund(payload);
+    expect(f.order.status).toBe(TipOrderStatus.PAID);
+    expect(f.order.refundedAt).toBeUndefined();
+  });
+
+  it('requires the original payment balance to corroborate a full refund', async () => {
+    const f = fixture();
+    f.remote.status = 4;
+    f.refund.status = 8;
+    await expect(
+      f.service.handleRefund({
+        MchOrderId: f.order.outTradeNo,
+        WxRefundId: 'wx-refund-1',
+      }),
+    ).rejects.toBeInstanceOf(ServiceUnavailableException);
+    expect(f.repository.save).not.toHaveBeenCalled();
+    f.remote.leftFee = 0;
+    await f.service.handleRefund({
+      MchOrderId: f.order.outTradeNo,
+      WxRefundId: 'wx-refund-1',
+    });
+    expect(f.order.status).toBe(TipOrderStatus.REFUNDED);
+    expect(f.order.paidAt).toEqual(new Date(1700000000 * 1000));
+    expect(f.order.wxOrderId).toBe('wx-order-1');
+  });
+
+  it('does not mistake a partial refund for a fully refunded payment', async () => {
+    const f = fixture();
+    f.remote.status = 4;
+    f.remote.leftFee = 400;
+    f.refund.status = 8;
+    f.refund.refundFee = 100;
+    await f.service.handleRefund({
+      MchOrderId: f.order.outTradeNo,
+      MchRefundId: 'REFUND12345678',
+    });
+    expect(f.order.status).toBe(TipOrderStatus.PAID);
+    expect(f.order.refundedAt).toBeUndefined();
+  });
+
+  it('confirms delivery only after committing the local paid state', async () => {
+    const f = fixture();
+    f.payment.notifyProvideGoods.mockImplementation(() => {
+      expect(f.repository.save).toHaveBeenCalled();
+      expect(f.order.status).toBe(TipOrderStatus.PAID);
+      return Promise.resolve();
+    });
+    await f.service.findOrder(7, f.order.outTradeNo);
+    expect(f.payment.notifyProvideGoods).toHaveBeenCalledWith(f.order);
+    f.remote.status = 4;
+    await f.service.findOrder(7, f.order.outTradeNo);
+    expect(f.payment.notifyProvideGoods).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not confirm delivery when the database commit fails', async () => {
+    const f = fixture();
+    f.dataSource.transaction.mockRejectedValue(new Error('commit failed'));
+    await expect(f.service.findOrder(7, f.order.outTradeNo)).rejects.toThrow(
+      'commit failed',
+    );
+    expect(f.payment.notifyProvideGoods).not.toHaveBeenCalled();
+  });
+
+  it('retries delivery of a locally paid order on the next compensation pass', async () => {
+    const f = fixture();
+    f.payment.notifyProvideGoods.mockRejectedValueOnce(
+      new Error('network failure'),
+    );
+    await expect(f.service.findOrder(7, f.order.outTradeNo)).rejects.toThrow();
+    expect(f.order.status).toBe(TipOrderStatus.PAID);
+    expect(await f.service.reconcileOrders(0)).toBe(0);
+    expect(f.payment.notifyProvideGoods).toHaveBeenCalledTimes(2);
+    expect(f.tipOrders.find).toHaveBeenCalledWith(
+      expect.objectContaining({ take: 50 }),
+    );
+    const [options] = f.tipOrders.find.mock.calls[0] as [
+      { where: { environment: number } },
+    ];
+    expect(options.where.environment).toBe(0);
+  });
+
+  it('advances the compensation cursor despite failures so old orders cannot starve new ones', async () => {
+    const f = fixture();
+    f.tipOrders.find.mockResolvedValue(
+      Array.from({ length: 50 }, (_, index) => ({
+        ...f.order,
+        id: index + 1,
+      })),
+    );
+    jest.spyOn(f.service['logger'], 'warn').mockImplementation(() => undefined);
+    f.payment.queryOrder.mockRejectedValue(new Error('unavailable'));
+    expect(await f.service.reconcileOrders(0)).toBe(50);
+    expect(f.payment.queryOrder).toHaveBeenCalledTimes(50);
   });
 });

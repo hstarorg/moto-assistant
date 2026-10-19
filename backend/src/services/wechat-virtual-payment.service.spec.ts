@@ -57,6 +57,8 @@ describe('WechatVirtualPaymentService', () => {
           order: {
             env_type: 1,
             order_fee: 500,
+            order_type: 0,
+            left_fee: 500,
             order_id: order.outTradeNo,
             paid_fee: 500,
             paid_time: 1700000000,
@@ -70,8 +72,10 @@ describe('WechatVirtualPaymentService', () => {
     );
 
     await expect(createService().queryOrder(order)).resolves.toEqual({
+      leftFee: 500,
       orderFee: 500,
       orderId: order.outTradeNo,
+      orderType: 0,
       paidFee: 500,
       paidTime: 1700000000,
       refundFee: 0,
@@ -90,7 +94,9 @@ describe('WechatVirtualPaymentService', () => {
       body: `{"openid":"openid-1","env":0,"order_id":"${order.outTradeNo}"}`,
       headers: { 'Content-Type': 'application/json' },
       method: 'POST',
+      signal: request?.signal,
     });
+    expect(request?.signal).toBeInstanceOf(AbortSignal);
   });
 
   it('keeps the feature unavailable when the combined config is empty', () => {

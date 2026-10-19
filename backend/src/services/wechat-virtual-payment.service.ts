@@ -61,6 +61,10 @@ export class WechatVirtualPaymentService {
     return this.environment;
   }
 
+  isEnabled(): boolean {
+    return this.client !== undefined;
+  }
+
   getMaximumTipAmountYuan(): number {
     return 200;
   }
@@ -71,13 +75,51 @@ export class WechatVirtualPaymentService {
 
   async queryOrder(order: TipOrderEntity): Promise<WechatVirtualPaymentOrder> {
     try {
-      return await this.getClient().queryOrder({
+      return await this.getOrderClient(order).queryOrder({
         openId: order.payerOpenId,
         orderId: order.outTradeNo,
         totalAmount: order.totalAmount,
       });
     } catch {
       throw new ServiceUnavailableException('微信订单查询暂时不可用');
+    }
+  }
+
+  async queryRefundOrder(
+    order: TipOrderEntity,
+    identifiers: { orderId?: string; wxOrderId?: string },
+  ): Promise<WechatVirtualPaymentOrder> {
+    try {
+      return await this.getOrderClient(order).queryRefundOrder({
+        ...identifiers,
+        openId: order.payerOpenId,
+        totalAmount: order.totalAmount,
+      });
+    } catch {
+      throw new ServiceUnavailableException('微信退款查询暂时不可用');
+    }
+  }
+
+  async notifyProvideGoods(order: TipOrderEntity): Promise<void> {
+    try {
+      await this.getOrderClient(order).notifyProvideGoods(order.outTradeNo);
+    } catch {
+      throw new ServiceUnavailableException('微信发货确认暂时不可用');
+    }
+  }
+
+  verifyUrlSignature(
+    signature: string | undefined,
+    timestamp: string | undefined,
+    nonce: string | undefined,
+  ): void {
+    try {
+      this.getClient().verifyUrlSignature(signature, timestamp, nonce);
+    } catch (error) {
+      if (error instanceof WechatVirtualPaymentError) {
+        throw new ForbiddenException('微信消息认证失败');
+      }
+      throw error;
     }
   }
 
@@ -105,6 +147,14 @@ export class WechatVirtualPaymentService {
   private getClient(): WechatVirtualPayment {
     this.assertEnabled();
     return this.client as WechatVirtualPayment;
+  }
+
+  private getOrderClient(order: TipOrderEntity): WechatVirtualPayment {
+    const client = this.getClient();
+    if (order.environment !== this.environment) {
+      throw new ServiceUnavailableException('微信订单环境不匹配');
+    }
+    return client;
   }
 
   private parseConfig(

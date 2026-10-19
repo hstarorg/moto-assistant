@@ -43,12 +43,21 @@ export interface WechatVirtualPaymentQueryInput {
 }
 
 export interface WechatVirtualPaymentOrder {
+  leftFee?: number;
   orderFee: number;
   orderId: string;
+  orderType: number;
   paidFee: number;
   paidTime: number;
   refundFee: number;
   status: number;
+  wxOrderId?: string;
+}
+
+export interface WechatVirtualPaymentRefundQueryInput {
+  openId: string;
+  orderId?: string;
+  totalAmount: number;
   wxOrderId?: string;
 }
 
@@ -59,6 +68,8 @@ interface WechatVirtualPaymentQueryOrderResponse {
     env_type?: number;
     order_fee?: number;
     order_id?: string;
+    order_type?: number;
+    left_fee?: number;
     paid_fee?: number;
     paid_time?: number;
     refund_fee?: number;
@@ -112,15 +123,104 @@ export class WechatVirtualPayment {
   async queryOrder(
     input: WechatVirtualPaymentQueryInput,
   ): Promise<WechatVirtualPaymentOrder> {
-    const requestBody = JSON.stringify({
+    const result = await this.query({
       openid: input.openId,
       env: this.config.environment,
       order_id: input.orderId,
     });
-    const paySig = this.hmacSha256(
-      this.config.appKey,
-      `/xpay/query_order&${requestBody}`,
+    const order = this.parseOrder(result);
+    if (
+      order.orderId !== input.orderId ||
+      order.orderFee !== input.totalAmount ||
+      ![0, 7].includes(order.orderType) ||
+      order.leftFee === undefined ||
+      order.leftFee > order.paidFee
+    ) {
+      throw new WechatVirtualPaymentError(
+        WechatVirtualPaymentErrorCode.QUERY_ORDER_INVALID,
+      );
+    }
+    return order;
+  }
+
+  async queryRefundOrder(
+    input: WechatVirtualPaymentRefundQueryInput,
+  ): Promise<WechatVirtualPaymentOrder> {
+    if (!input.orderId && !input.wxOrderId) {
+      throw new WechatVirtualPaymentError(
+        WechatVirtualPaymentErrorCode.QUERY_ORDER_INVALID,
+      );
+    }
+    const result = await this.query({
+      openid: input.openId,
+      env: this.config.environment,
+      ...(input.orderId
+        ? { order_id: input.orderId }
+        : { wx_order_id: input.wxOrderId }),
+    });
+    const order = this.parseOrder(result);
+    if (
+      (input.orderId && order.orderId !== input.orderId) ||
+      (input.wxOrderId && order.wxOrderId !== input.wxOrderId) ||
+      ![1, 8].includes(order.orderType) ||
+      order.refundFee <= 0 ||
+      order.refundFee > input.totalAmount ||
+      (order.status === 8 && order.paidTime <= 0)
+    ) {
+      throw new WechatVirtualPaymentError(
+        WechatVirtualPaymentErrorCode.QUERY_ORDER_INVALID,
+      );
+    }
+    return order;
+  }
+
+  async notifyProvideGoods(orderId: string): Promise<void> {
+    await this.request(
+      '/xpay/notify_provide_goods',
+      { order_id: orderId, env: this.config.environment },
+      {
+        failed: WechatVirtualPaymentErrorCode.PROVIDE_FAILED,
+        request: WechatVirtualPaymentErrorCode.PROVIDE_REQUEST_FAILED,
+        response: WechatVirtualPaymentErrorCode.PROVIDE_RESPONSE_INVALID,
+      },
+      false,
     );
+  }
+
+  verifyUrlSignature(
+    signature: string | undefined,
+    timestamp: string | undefined,
+    nonce: string | undefined,
+  ): void {
+    this.verifyMessageSignature(signature, [
+      this.config.messageToken,
+      timestamp,
+      nonce,
+    ]);
+  }
+
+  private async query(
+    body: Record<string, unknown>,
+  ): Promise<WechatVirtualPaymentQueryOrderResponse> {
+    const result = await this.request('/xpay/query_order', body, {
+      failed: WechatVirtualPaymentErrorCode.QUERY_FAILED,
+      request: WechatVirtualPaymentErrorCode.QUERY_REQUEST_FAILED,
+      response: WechatVirtualPaymentErrorCode.QUERY_RESPONSE_INVALID,
+    });
+    return result;
+  }
+
+  private async request(
+    path: string,
+    body: Record<string, unknown>,
+    codes: {
+      failed: WechatVirtualPaymentErrorCode;
+      request: WechatVirtualPaymentErrorCode;
+      response: WechatVirtualPaymentErrorCode;
+    },
+    signed = true,
+  ): Promise<Record<string, unknown>> {
+    const requestBody = JSON.stringify(body);
     let accessToken: string;
     try {
       accessToken = await this.dependencies.getAccessToken();
@@ -129,10 +229,17 @@ export class WechatVirtualPayment {
         WechatVirtualPaymentErrorCode.ACCESS_TOKEN_FAILED,
       );
     }
-    const url = new URL('https://api.weixin.qq.com/xpay/query_order');
+    const url = new URL(path, 'https://api.weixin.qq.com');
     url.search = new URLSearchParams({
       access_token: accessToken,
-      pay_sig: paySig,
+      ...(signed
+        ? {
+            pay_sig: this.hmacSha256(
+              this.config.appKey,
+              `${path}&${requestBody}`,
+            ),
+          }
+        : {}),
     }).toString();
 
     let response: Response;
@@ -141,45 +248,64 @@ export class WechatVirtualPayment {
         body: requestBody,
         headers: { 'Content-Type': 'application/json' },
         method: 'POST',
+        signal: AbortSignal.timeout(5000),
       });
     } catch {
-      throw new WechatVirtualPaymentError(
-        WechatVirtualPaymentErrorCode.QUERY_REQUEST_FAILED,
-      );
+      throw new WechatVirtualPaymentError(codes.request);
     }
     if (!response.ok) {
-      throw new WechatVirtualPaymentError(
-        WechatVirtualPaymentErrorCode.QUERY_REQUEST_FAILED,
-      );
+      throw new WechatVirtualPaymentError(codes.request);
     }
 
-    let result: WechatVirtualPaymentQueryOrderResponse;
+    let result: unknown;
     try {
-      result =
-        (await response.json()) as WechatVirtualPaymentQueryOrderResponse;
+      result = await response.json();
     } catch {
-      throw new WechatVirtualPaymentError(
-        WechatVirtualPaymentErrorCode.QUERY_RESPONSE_INVALID,
-      );
+      throw new WechatVirtualPaymentError(codes.response);
     }
+    if (
+      typeof result !== 'object' ||
+      result === null ||
+      Array.isArray(result)
+    ) {
+      throw new WechatVirtualPaymentError(codes.response);
+    }
+    if ((result as Record<string, unknown>).errcode !== 0) {
+      throw new WechatVirtualPaymentError(codes.failed);
+    }
+    return result as Record<string, unknown>;
+  }
+
+  private parseOrder(
+    result: WechatVirtualPaymentQueryOrderResponse,
+  ): WechatVirtualPaymentOrder {
     const order = result.order;
-    if (result.errcode !== 0 || !order) {
+    if (!order || typeof order !== 'object') {
       throw new WechatVirtualPaymentError(
         WechatVirtualPaymentErrorCode.QUERY_FAILED,
       );
     }
     if (
-      order.order_id !== input.orderId ||
       order.env_type !== this.config.environment + 1 ||
-      order.order_fee !== input.totalAmount ||
+      typeof order.order_id !== 'string' ||
+      !order.order_id ||
+      !Number.isSafeInteger(order.order_type) ||
+      !Number.isSafeInteger(order.order_fee) ||
+      (order.order_fee ?? -1) < 0 ||
       typeof order.status !== 'number' ||
       !Number.isSafeInteger(order.status) ||
       typeof order.paid_fee !== 'number' ||
       !Number.isSafeInteger(order.paid_fee) ||
+      order.paid_fee < 0 ||
       typeof order.refund_fee !== 'number' ||
       !Number.isSafeInteger(order.refund_fee) ||
+      order.refund_fee < 0 ||
       typeof order.paid_time !== 'number' ||
-      !Number.isSafeInteger(order.paid_time)
+      !Number.isSafeInteger(order.paid_time) ||
+      order.paid_time < 0 ||
+      (order.left_fee !== undefined &&
+        (!Number.isSafeInteger(order.left_fee) || order.left_fee < 0)) ||
+      (order.wx_order_id !== undefined && typeof order.wx_order_id !== 'string')
     ) {
       throw new WechatVirtualPaymentError(
         WechatVirtualPaymentErrorCode.QUERY_ORDER_INVALID,
@@ -187,8 +313,10 @@ export class WechatVirtualPayment {
     }
 
     return {
-      orderFee: order.order_fee,
+      leftFee: order.left_fee,
+      orderFee: order.order_fee as number,
       orderId: order.order_id,
+      orderType: order.order_type as number,
       paidFee: order.paid_fee,
       paidTime: order.paid_time,
       refundFee: order.refund_fee,

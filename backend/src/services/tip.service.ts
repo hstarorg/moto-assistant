@@ -4,6 +4,7 @@ import {
   HttpException,
   HttpStatus,
   Injectable,
+  Logger,
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
@@ -11,6 +12,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { randomBytes } from 'node:crypto';
 import {
   DataSource,
+  In,
+  MoreThan,
   MoreThanOrEqual,
   QueryFailedError,
   Repository,
@@ -31,6 +34,8 @@ type MessagePayload = Record<string, unknown>;
 
 @Injectable()
 export class TipService {
+  private readonly logger = new Logger(TipService.name);
+
   constructor(
     @InjectRepository(TipOrderEntity)
     private readonly tipOrders: Repository<TipOrderEntity>,
@@ -147,7 +152,7 @@ export class TipService {
       throw new NotFoundException('赞赏订单不存在');
     }
 
-    const synchronized = await this.synchronizeOrder(order);
+    const synchronized = await this.synchronizeOrder(order, false);
     if (synchronized.status === TipOrderStatus.PENDING) {
       throw new ServiceUnavailableException('微信订单状态待确认');
     }
@@ -168,32 +173,64 @@ export class TipService {
       throw new BadRequestException('微信退款消息格式不正确');
     }
 
-    const identifiers = [merchantOrderId, wechatOrderId].filter(
-      (value): value is string => value !== undefined,
-    );
     const order = await this.tipOrders.findOne({
-      where: identifiers.flatMap((identifier) => [
-        { outTradeNo: identifier },
-        { wxOrderId: identifier },
-      ]),
+      where: [
+        ...(merchantOrderId ? [{ outTradeNo: merchantOrderId }] : []),
+        ...(wechatOrderId ? [{ wxOrderId: wechatOrderId }] : []),
+      ],
     });
     if (!order) {
       throw new NotFoundException('赞赏订单不存在');
     }
 
-    const synchronized = await this.synchronizeOrder(order);
-    if (synchronized.status !== TipOrderStatus.REFUNDED) {
+    const refundOrderId = this.readOptionalString(payload, ['MchRefundId']);
+    const refundWxOrderId = this.readOptionalString(payload, ['WxRefundId']);
+    const refund =
+      refundOrderId || refundWxOrderId
+        ? await this.virtualPayment.queryRefundOrder(order, {
+            orderId: refundOrderId,
+            wxOrderId: refundWxOrderId,
+          })
+        : undefined;
+    const synchronized = await this.synchronizeOrder(order, false, refund);
+    if (
+      synchronized.status !== TipOrderStatus.REFUNDED &&
+      refund?.status !== 8 &&
+      refund?.status !== 7
+    ) {
       throw new ServiceUnavailableException('微信退款状态待确认');
     }
   }
 
+  async reconcileOrders(afterId: number): Promise<number> {
+    const orders = await this.tipOrders.find({
+      where: {
+        environment: this.virtualPayment.getEnvironment(),
+        id: MoreThan(afterId),
+        status: In([TipOrderStatus.PENDING, TipOrderStatus.PAID]),
+      },
+      order: { id: 'ASC' },
+      take: 50,
+    });
+    for (const order of orders) {
+      try {
+        await this.synchronizeOrder(order);
+      } catch {
+        this.logger.warn(`赞赏订单补偿暂未完成: ${order.outTradeNo}`);
+      }
+    }
+    return orders.length === 50 ? orders[orders.length - 1].id : 0;
+  }
+
   private async synchronizeOrder(
     order: TipOrderEntity,
+    confirmDelivery = true,
+    refund?: WechatVirtualPaymentOrder,
   ): Promise<TipOrderEntity> {
     const remoteOrder = await this.virtualPayment.queryOrder(order);
-    const nextStatus = this.mapRemoteStatus(remoteOrder);
+    const nextStatus = this.mapRemoteStatus(remoteOrder, refund);
 
-    return this.dataSource.transaction(async (manager) => {
+    const synchronized = await this.dataSource.transaction(async (manager) => {
       const orders = manager.getRepository(TipOrderEntity);
       const locked = await orders.findOne({
         lock: { mode: 'pessimistic_write' },
@@ -216,7 +253,8 @@ export class TipService {
         changed = true;
       }
       if (
-        nextStatus === TipOrderStatus.PAID &&
+        (nextStatus === TipOrderStatus.PAID ||
+          nextStatus === TipOrderStatus.REFUNDED) &&
         remoteOrder.paidTime > 0 &&
         !locked.paidAt
       ) {
@@ -229,27 +267,47 @@ export class TipService {
       }
       return changed ? orders.save(locked) : locked;
     });
+    if (
+      confirmDelivery &&
+      synchronized.status === TipOrderStatus.PAID &&
+      [2, 3].includes(remoteOrder.status)
+    ) {
+      await this.virtualPayment.notifyProvideGoods(synchronized);
+    }
+    return synchronized;
   }
 
-  private mapRemoteStatus(order: WechatVirtualPaymentOrder): TipOrderStatus {
+  private mapRemoteStatus(
+    order: WechatVirtualPaymentOrder,
+    refund?: WechatVirtualPaymentOrder,
+  ): TipOrderStatus {
     if (order.status === 0 || order.status === 1) {
       return TipOrderStatus.PENDING;
     }
-    if ([2, 3, 4, 7, 9, 10].includes(order.status)) {
+    if ([2, 3, 4, 5, 7, 8, 9, 10].includes(order.status)) {
       if (order.paidFee !== order.orderFee || order.paidTime <= 0) {
         throw new BadRequestException('微信订单支付信息不正确');
       }
-      return TipOrderStatus.PAID;
-    }
-    if (order.status === 5 || order.status === 8) {
-      if (
-        order.paidFee !== order.orderFee ||
-        order.refundFee !== order.orderFee ||
-        order.paidTime <= 0
-      ) {
-        throw new BadRequestException('微信订单退款信息不正确');
+      if (refund) {
+        if (refund.orderType !== (order.orderType === 7 ? 8 : 1)) {
+          throw new BadRequestException('微信退款渠道不正确');
+        }
+        if (
+          refund.status === 8 &&
+          (order.leftFee === undefined ||
+            order.leftFee > order.orderFee - refund.refundFee)
+        ) {
+          throw new ServiceUnavailableException('微信退款金额待确认');
+        }
       }
-      return TipOrderStatus.REFUNDED;
+      if (
+        order.leftFee === 0 &&
+        (order.status === 8 ||
+          (refund?.status === 8 && refund.refundFee === order.orderFee))
+      ) {
+        return TipOrderStatus.REFUNDED;
+      }
+      return TipOrderStatus.PAID;
     }
     if (order.status === 6) {
       return TipOrderStatus.CLOSED;
@@ -366,7 +424,11 @@ export class TipService {
   ): string | undefined {
     for (const key of keys) {
       const value = payload[key];
-      if (typeof value === 'string' && value.length > 0) {
+      if (
+        typeof value === 'string' &&
+        value.length > 0 &&
+        value.length <= 128
+      ) {
         return value;
       }
     }

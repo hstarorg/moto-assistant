@@ -79,7 +79,7 @@ const savePendingOrder = (orderNo: string): void => {
       savedAt: Date.now()
     } as StoredPendingOrder);
   } catch {
-    // 本地存储失败不影响已经发起的支付，当前页面仍会继续查单。
+    throw new Error('无法保存支付记录，请稍后重试');
   }
 };
 
@@ -135,6 +135,18 @@ const getVirtualPaymentErrorText = (error: VirtualPaymentError): string => {
     return '赞赏功能暂不可用，请稍后再试';
   }
   return '支付未完成，请稍后重试';
+};
+
+const isDefinitivePaymentFailure = (error: VirtualPaymentError): boolean => {
+  return (
+    error.reason === 'not-supported' ||
+    error.reason === 'cancelled' ||
+    [
+      1001, -4, -15001, -15004, -15005, -15006, -15007, -15008, -15009, -15010,
+      -15011, -15012, -15013, -15014, -15016, -15017, -15018, -15019, -15020,
+      -15021
+    ].includes(error.errCode ?? 0)
+  );
 };
 
 const getApiErrorText = (error: unknown): string => {
@@ -277,20 +289,25 @@ Page({
       messageBox.toast('当前微信版本暂不支持赞赏，请升级微信后重试');
       return;
     }
-    if (!(await confirmAmount(amount))) {
-      return;
-    }
-
     const flowVersion = ++paymentFlowVersion;
     this.setData({
       actionLabel: '正在发起赞赏',
       amountError: '',
       isPaying: true,
+      lastOrderNo: '',
       paymentState: 'idle'
     });
     try {
-      const order = await this._startPayment(amount, true);
-      savePendingOrder(order.orderNo);
+      if (!(await confirmAmount(amount))) {
+        if (flowVersion === paymentFlowVersion) {
+          this._restoreIdleAction();
+        }
+        return;
+      }
+      if (flowVersion !== paymentFlowVersion) {
+        return;
+      }
+      const order = await this._startPayment(amount, true, flowVersion);
       if (flowVersion !== paymentFlowVersion) {
         return;
       }
@@ -309,9 +326,21 @@ Page({
       }
       if (
         error instanceof VirtualPaymentError &&
-        error.reason === 'cancelled'
+        isDefinitivePaymentFailure(error)
       ) {
+        clearPendingOrder();
+        if (error.reason !== 'cancelled') {
+          messageBox.toast(getVirtualPaymentErrorText(error));
+        }
         this._restoreIdleAction();
+        return;
+      }
+      if (this.data.lastOrderNo) {
+        const orderNo = this.data.lastOrderNo;
+        const status = await this._pollOrder(orderNo, flowVersion);
+        if (flowVersion === paymentFlowVersion) {
+          this._applyOrderStatus(status, orderNo);
+        }
         return;
       }
       messageBox.toast(
@@ -329,15 +358,27 @@ Page({
 
   async _startPayment(
     amountYuan: number,
-    canRetryPaymentSession: boolean
+    canRetryPaymentSession: boolean,
+    flowVersion: number
   ): Promise<CreateTipOrderResponse> {
     const order = await this._createOrder(amountYuan, true);
+    if (flowVersion !== paymentFlowVersion) {
+      return order;
+    }
+    savePendingOrder(order.orderNo);
+    this.setData({ lastOrderNo: order.orderNo, paymentState: 'pending' });
     try {
       await requestVirtualPayment(order.payment);
       return order;
     } catch (error) {
-      if (canRetryPaymentSession && shouldRetryPaymentSession(error)) {
-        return this._startPayment(amountYuan, false);
+      if (
+        flowVersion === paymentFlowVersion &&
+        canRetryPaymentSession &&
+        shouldRetryPaymentSession(error)
+      ) {
+        clearPendingOrder();
+        this.setData({ lastOrderNo: '', paymentState: 'idle' });
+        return this._startPayment(amountYuan, false, flowVersion);
       }
       throw error;
     }
@@ -437,7 +478,6 @@ Page({
       return;
     }
     if (status === 'pending') {
-      savePendingOrder(orderNo);
       this.setData({
         actionLabel: '重新查询支付结果',
         lastOrderNo: orderNo,

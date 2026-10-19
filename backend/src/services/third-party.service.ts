@@ -174,7 +174,7 @@ export class ThirdPartyService implements OnApplicationShutdown {
 
     let response: Response;
     try {
-      response = await fetch(url);
+      response = await fetch(url, { signal: AbortSignal.timeout(5000) });
     } catch {
       throw new BadGatewayException('微信服务暂时不可用');
     }
