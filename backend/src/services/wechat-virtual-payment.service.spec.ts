@@ -1,5 +1,9 @@
 import { Logger, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import {
+  observedPaidOrder,
+  paymentSigningVector,
+} from '../../test/fixtures/wechat-virtual-payment';
 import type { TipOrderEntity } from '../database';
 import type { ThirdPartyService } from './third-party.service';
 import { WechatVirtualPaymentService } from './wechat-virtual-payment.service';
@@ -47,50 +51,36 @@ describe('WechatVirtualPaymentService', () => {
   it('builds deterministic payment parameters with the documented signatures', () => {
     const service = createService();
 
-    expect(service.createPaymentParameters(order, 'session-key')).toEqual({
+    expect(
+      service.createPaymentParameters(order, paymentSigningVector.sessionKey),
+    ).toEqual({
       mode: 'short_series_goods',
-      paySig:
-        'a1d3e03c9f7bcf6cf43150c83f7cd2e88e028bc79a6d4d15eb3561c510ba3853',
-      signData:
-        '{"offerId":"offer-123","buyQuantity":5,"env":0,"currencyType":"CNY","productId":"zanshang","goodsPrice":100,"outTradeNo":"MA1234567890ABCDEF","attach":"MA1234567890ABCDEF"}',
-      signature:
-        '3e335df9dd72aa7d1d96f6adedafc837206744fe171380c903b13a7276c2a616',
+      paySig: paymentSigningVector.paySig,
+      signData: paymentSigningVector.signData,
+      signature: paymentSigningVector.signature,
     });
   });
 
   it('queries and validates the authoritative order from WeChat', async () => {
     const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          errcode: 0,
-          errmsg: 'ok',
-          order: {
-            env_type: 1,
-            order_fee: 500,
-            order_type: 0,
-            left_fee: 500,
-            order_id: order.outTradeNo,
-            paid_fee: 500,
-            paid_time: 1700000000,
-            refund_fee: 0,
-            status: 2,
-            wx_order_id: 'wx-order-1',
-          },
-        }),
-        { headers: { 'Content-Type': 'application/json' }, status: 200 },
-      ),
+      new Response(JSON.stringify(observedPaidOrder), {
+        headers: { 'Content-Type': 'application/json' },
+        status: 200,
+      }),
     );
 
-    await expect(createService().queryOrder(order)).resolves.toEqual({
-      leftFee: 500,
-      orderFee: 500,
+    await expect(
+      createService().queryOrder({ ...order, totalAmount: 100 }),
+    ).resolves.toEqual({
+      leftFee: 100,
+      orderFee: 100,
       orderId: order.outTradeNo,
       orderType: 0,
-      paidFee: 500,
-      paidTime: 1700000000,
+      paidFee: 100,
+      paidTime: 1792397607,
       refundFee: 0,
-      status: 2,
-      wxOrderId: 'wx-order-1',
+      status: 3,
+      wxOrderId: 'wx-order-redacted',
     });
     const [requestUrl, request] = fetchMock.mock.calls[0];
     expect(requestUrl).toBeInstanceOf(URL);
@@ -99,7 +89,9 @@ describe('WechatVirtualPaymentService', () => {
     }
     expect(requestUrl.pathname).toBe('/xpay/query_order');
     expect(requestUrl.searchParams.get('access_token')).toBe('access-token');
-    expect(requestUrl.searchParams.get('pay_sig')).toHaveLength(64);
+    expect(requestUrl.searchParams.get('pay_sig')).toBe(
+      '38ab22a630e019649ca9d4bcc9b217764c8f9e255d2a9e9bcf95cb41331b7d30',
+    );
     expect(request).toEqual({
       body: `{"openid":"openid-1","env":0,"order_id":"${order.outTradeNo}"}`,
       headers: { 'Content-Type': 'application/json' },

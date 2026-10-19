@@ -5,10 +5,8 @@ import type { WechatVirtualPaymentService } from './wechat-virtual-payment.servi
 
 describe('WechatMessageService', () => {
   const tipService = {
-    handleGoodsDeliver:
-      jest.fn<(payload: Record<string, unknown>) => Promise<void>>(),
-    handleRefund:
-      jest.fn<(payload: Record<string, unknown>) => Promise<void>>(),
+    handleGoodsDeliver: jest.fn<Promise<void>, [Record<string, unknown>]>(),
+    handleRefund: jest.fn<Promise<void>, [Record<string, unknown>]>(),
   };
   const virtualPayment = {
     assertEnabled: jest.fn(),

@@ -175,6 +175,15 @@ Page({
     wx.navigateTo({ url: '../moto-add/moto-add' });
   },
 
+  navigateToTip() {
+    wx.navigateTo({
+      url: '../tip/tip',
+      fail() {
+        messageBox.toast('暂时无法打开赞赏页面');
+      }
+    });
+  },
+
   navigateToFuelList(
     event: WechatMiniprogram.TouchEvent<
       WechatMiniprogram.IAnyObject,

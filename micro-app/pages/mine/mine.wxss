@@ -77,6 +77,63 @@
   margin-top: 32rpx;
 }
 
+.support-card {
+  --support-background: #eff8f2;
+  --support-border: #cde4d5;
+  --support-heading: #164c32;
+  --support-copy: #3e6451;
+  --support-button: #16794a;
+  --support-button-text: #fff;
+  --support-button-pressed: #11623b;
+  margin-top: 32rpx;
+  padding: 32rpx;
+  border: 1rpx solid var(--support-border);
+  border-radius: 24rpx;
+  background: var(--support-background);
+}
+
+.support-title {
+  display: block;
+  color: var(--support-heading);
+  font-size: 34rpx;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.support-description {
+  display: block;
+  margin-top: 8rpx;
+  color: var(--support-copy);
+  font-size: 27rpx;
+  line-height: 1.6;
+}
+
+.support-action {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 24rpx 0 0;
+  padding: 20rpx 32rpx;
+  border: 0;
+  border-radius: 12rpx;
+  box-sizing: border-box;
+  background: var(--support-button);
+  color: var(--support-button-text);
+  font-size: 30rpx;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.support-action::after {
+  border: 0;
+}
+
+.support-action--pressed {
+  background: var(--support-button-pressed);
+}
+
 .section-title {
   display: block;
   margin: 0 8rpx 16rpx;
@@ -147,6 +204,16 @@
 }
 
 @media (prefers-color-scheme: dark) {
+  .support-card {
+    --support-background: #1f3328;
+    --support-border: #3c634c;
+    --support-heading: #d9f4e3;
+    --support-copy: #b7d2c0;
+    --support-button: #87d6ad;
+    --support-button-text: #123c28;
+    --support-button-pressed: #6cc795;
+  }
+
   .profile-card,
   .action-card,
   .action-row {

@@ -111,8 +111,10 @@ SDK 校验退款单号、环境、订单类型（1：普通退款，8：Apple �
 
 ### `notifyProvideGoods(orderId)`
 
-仅在主动查单确认付款且本地业务事务提交后调用。该接口按官方协议只携带 access_token，
-不添加 pay_sig。正常发货推送已成功应答时无需额外调用；推送丢失或确认失败时用于补偿。
+仅在主动查单确认付款且本地业务事务提交后调用。请求必须携带 `access_token` 和 `pay_sig`，
+复用查单的 AppKey 签名逻辑：`HMAC-SHA256(AppKey, "/xpay/notify_provide_goods&" + 原始JSON请求体)`。
+签名使用的 JSON 必须与实际请求体完全一致；实测缺少 `pay_sig` 会返回 `268490002`。
+正常发货推送已成功应答时无需额外调用；推送丢失或确认失败时用于补偿。
 查询到状态 4（已发货）后不再发送确认。微信网络请求设置 5 秒超时，失败由调用方重试。
 该超时覆盖 HTTP 请求与响应体读取；自定义 `getAccessToken` / `refreshAccessToken` 回调
 应由接入应用保证有界。本项目的微信登录和 token HTTP 请求同样设置 5 秒超时。

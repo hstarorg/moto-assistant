@@ -1,4 +1,9 @@
-import { createCipheriv, createHash } from 'node:crypto';
+import {
+  observedPaidOrder,
+  officialJsonMessage,
+  paymentSigningVector,
+  querySigningVectors,
+} from '../../../test/fixtures/wechat-virtual-payment';
 import {
   WechatVirtualPayment,
   type WechatVirtualPaymentConfig,
@@ -17,7 +22,7 @@ describe('WechatVirtualPayment', () => {
     offerId: 'offer-123',
   };
 
-  it('builds deterministic payment parameters', () => {
+  it('matches an independent signing vector using the session_key text, not decoded bytes', () => {
     const client = createClient();
 
     expect(
@@ -25,17 +30,14 @@ describe('WechatVirtualPayment', () => {
         outTradeNo: 'MA1234567890ABCDEF',
         productId: 'zanshang',
         quantity: 5,
-        sessionKey: 'session-key',
+        sessionKey: paymentSigningVector.sessionKey,
         unitPrice: 100,
       }),
     ).toEqual({
       mode: 'short_series_goods',
-      paySig:
-        'a1d3e03c9f7bcf6cf43150c83f7cd2e88e028bc79a6d4d15eb3561c510ba3853',
-      signData:
-        '{"offerId":"offer-123","buyQuantity":5,"env":0,"currencyType":"CNY","productId":"zanshang","goodsPrice":100,"outTradeNo":"MA1234567890ABCDEF","attach":"MA1234567890ABCDEF"}',
-      signature:
-        '3e335df9dd72aa7d1d96f6adedafc837206744fe171380c903b13a7276c2a616',
+      paySig: paymentSigningVector.paySig,
+      signData: paymentSigningVector.signData,
+      signature: paymentSigningVector.signature,
     });
   });
 
@@ -82,64 +84,96 @@ describe('WechatVirtualPayment', () => {
     });
   });
 
-  it('actively queries and validates the authoritative order', async () => {
-    const fetchMock = jest.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          errcode: 0,
-          errmsg: 'ok',
-          order: {
-            env_type: 1,
-            order_fee: 500,
-            order_type: 0,
-            left_fee: 500,
-            order_id: 'MA1234567890ABCDEF',
-            paid_fee: 500,
-            paid_time: 1700000000,
-            refund_fee: 0,
-            status: 2,
-            wx_order_id: 'wx-order-1',
-          },
-        }),
-        { headers: { 'Content-Type': 'application/json' }, status: 200 },
-      ),
-    );
-    const getAccessToken = jest.fn().mockResolvedValue('access-token');
-    const client = new WechatVirtualPayment(config, {
-      fetch: fetchMock as typeof fetch,
-      getAccessToken,
-    });
+  it.each(querySigningVectors)(
+    'signs the exact query body in environment $environment and reads the sanitized response',
+    async ({ environment, body, paySig }) => {
+      // Only env_type is adapted for the synthetic sandbox variant.
+      const fetchMock = jest.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            ...observedPaidOrder,
+            order: {
+              ...observedPaidOrder.order,
+              env_type: environment + 1,
+            },
+          }),
+          { headers: { 'Content-Type': 'application/json' }, status: 200 },
+        ),
+      );
+      const getAccessToken = jest.fn().mockResolvedValue('access-token');
+      const client = new WechatVirtualPayment(
+        { ...config, environment },
+        {
+          fetch: fetchMock as typeof fetch,
+          getAccessToken,
+        },
+      );
 
-    await expect(
-      client.queryOrder({
-        openId: 'openid-1',
+      await expect(
+        client.queryOrder({
+          openId: 'openid-1',
+          orderId: 'MA1234567890ABCDEF',
+          totalAmount: 100,
+        }),
+      ).resolves.toEqual({
+        leftFee: 100,
+        orderFee: 100,
         orderId: 'MA1234567890ABCDEF',
-        totalAmount: 500,
-      }),
-    ).resolves.toEqual({
-      leftFee: 500,
-      orderFee: 500,
-      orderId: 'MA1234567890ABCDEF',
-      orderType: 0,
-      paidFee: 500,
-      paidTime: 1700000000,
-      refundFee: 0,
-      status: 2,
-      wxOrderId: 'wx-order-1',
-    });
-    expect(getAccessToken).toHaveBeenCalledTimes(1);
-    const [requestUrl, request] = fetchMock.mock.calls[0] as [URL, RequestInit];
-    expect(requestUrl.pathname).toBe('/xpay/query_order');
-    expect(requestUrl.searchParams.get('access_token')).toBe('access-token');
-    expect(requestUrl.searchParams.get('pay_sig')).toHaveLength(64);
-    expect(request).toEqual({
-      body: '{"openid":"openid-1","env":0,"order_id":"MA1234567890ABCDEF"}',
-      headers: { 'Content-Type': 'application/json' },
-      method: 'POST',
-      signal: request.signal,
-    });
-    expect(request.signal).toBeInstanceOf(AbortSignal);
-  });
+        orderType: 0,
+        paidFee: 100,
+        paidTime: 1792397607,
+        refundFee: 0,
+        status: 3,
+        wxOrderId: 'wx-order-redacted',
+      });
+      expect(getAccessToken).toHaveBeenCalledTimes(1);
+      const [requestUrl, request] = fetchMock.mock.calls[0] as [
+        URL,
+        RequestInit,
+      ];
+      expect(requestUrl.pathname).toBe('/xpay/query_order');
+      expect(requestUrl.searchParams.get('access_token')).toBe('access-token');
+      expect(requestUrl.origin).toBe('https://api.weixin.qq.com');
+      expect(requestUrl.searchParams.get('pay_sig')).toBe(paySig);
+      expect(request).toEqual({
+        body,
+        headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+        signal: request.signal,
+      });
+      expect(request.signal).toBeInstanceOf(AbortSignal);
+    },
+  );
+
+  it.each([
+    { env_type: 2 },
+    { order_id: 'MAOTHER12345678' },
+    { order_fee: 101 },
+    { order_type: 1, refund_fee: 100 },
+    { left_fee: 101 },
+  ])(
+    'rejects a mismatched authoritative payment: %p',
+    async (changedFields) => {
+      const client = new WechatVirtualPayment(config, {
+        fetch: jest.fn().mockResolvedValue(
+          Response.json({
+            ...observedPaidOrder,
+            order: { ...observedPaidOrder.order, ...changedFields },
+          }),
+        ) as typeof fetch,
+        getAccessToken: jest.fn().mockResolvedValue('access-token'),
+      });
+      await expect(
+        client.queryOrder({
+          openId: 'openid-1',
+          orderId: 'MA1234567890ABCDEF',
+          totalAmount: 100,
+        }),
+      ).rejects.toMatchObject({
+        code: WechatVirtualPaymentErrorCode.QUERY_ORDER_INVALID,
+      });
+    },
+  );
 
   it.each([0, 7])(
     'accepts payment type %i without a refund_fee field',
@@ -274,6 +308,8 @@ describe('WechatVirtualPayment', () => {
   });
 
   it('queries refund ids separately and validates their type and amount', async () => {
+    // Synthetic refund scenario from documented types/fields, NOT a captured
+    // refund response. Zero payment amounts here are inputs, not a provider rule.
     const refund = {
       env_type: 1,
       order_fee: 0,
@@ -328,24 +364,33 @@ describe('WechatVirtualPayment', () => {
     });
   });
 
-  it('confirms delivery with the documented token-only API', async () => {
-    const fetchMock = jest
-      .fn()
-      .mockResolvedValue(new Response(JSON.stringify({ errcode: 0 })));
-    const client = new WechatVirtualPayment(config, {
-      fetch: fetchMock as typeof fetch,
-      getAccessToken: jest.fn().mockResolvedValue('access-token'),
-    });
-    await client.notifyProvideGoods('MA1234567890ABCDEF');
-    const [url, request] = fetchMock.mock.calls[0] as [URL, RequestInit];
-    expect(url.pathname).toBe('/xpay/notify_provide_goods');
-    expect(url.searchParams.get('access_token')).toBe('access-token');
-    expect(url.searchParams.has('pay_sig')).toBe(false);
-    expect(JSON.parse(request.body as string)).toEqual({
-      order_id: 'MA1234567890ABCDEF',
-      env: 0,
-    });
-  });
+  it.each([
+    [0, 'a0691dc36196b63575ed3d7c3fd938cf0cf2d8aafe016295812843f13d670cca'],
+    [1, 'cf27e0027eb087a14b62f180754b38dc9f94ee0ea72ce3b2a2ef242404ade7f0'],
+  ] as const)(
+    'signs delivery confirmation for environment %i',
+    async (environment, expectedPaySig) => {
+      const fetchMock = jest
+        .fn()
+        .mockResolvedValue(new Response(JSON.stringify({ errcode: 0 })));
+      const client = new WechatVirtualPayment(
+        { ...config, environment },
+        {
+          fetch: fetchMock as typeof fetch,
+          getAccessToken: jest.fn().mockResolvedValue('access-token'),
+        },
+      );
+      await client.notifyProvideGoods('MA1234567890ABCDEF');
+      const [url, request] = fetchMock.mock.calls[0] as [URL, RequestInit];
+      expect(url.pathname).toBe('/xpay/notify_provide_goods');
+      expect(url.searchParams.get('access_token')).toBe('access-token');
+      expect(url.searchParams.get('pay_sig')).toBe(expectedPaySig);
+      expect(JSON.parse(request.body as string)).toEqual({
+        order_id: 'MA1234567890ABCDEF',
+        env: environment,
+      });
+    },
+  );
 
   it('rejects failed delivery confirmations with an SDK error code', async () => {
     const client = new WechatVirtualPayment(config, {
@@ -360,6 +405,26 @@ describe('WechatVirtualPayment', () => {
       client.notifyProvideGoods('MA1234567890ABCDEF'),
     ).rejects.toMatchObject({
       code: WechatVirtualPaymentErrorCode.PROVIDE_FAILED,
+    });
+  });
+
+  it('preserves observed delivery error 268490002 without exposing or interpreting errmsg', async () => {
+    const client = new WechatVirtualPayment(config, {
+      // Selected code from both live no-order probes. The same code was used
+      // for missing pay_sig AND missing order identifiers; it is not specific.
+      fetch: jest
+        .fn()
+        .mockResolvedValue(
+          Response.json({ errcode: 268490002 }),
+        ) as typeof fetch,
+      getAccessToken: jest.fn().mockResolvedValue('access-token'),
+    });
+    await expect(
+      client.notifyProvideGoods('MA1234567890ABCDEF'),
+    ).rejects.toMatchObject({
+      code: WechatVirtualPaymentErrorCode.PROVIDE_FAILED,
+      upstreamCode: 268490002,
+      message: '',
     });
   });
 
@@ -393,6 +458,12 @@ describe('WechatVirtualPayment', () => {
       ];
       expect(firstUrl.searchParams.get('access_token')).toBe('old-token');
       expect(secondUrl.searchParams.get('access_token')).toBe('new-token');
+      expect(firstUrl.searchParams.get('pay_sig')).toBe(
+        'a0691dc36196b63575ed3d7c3fd938cf0cf2d8aafe016295812843f13d670cca',
+      );
+      expect(secondUrl.searchParams.get('pay_sig')).toBe(
+        firstUrl.searchParams.get('pay_sig'),
+      );
       expect(secondRequest.body).toBe(firstRequest.body);
     },
   );
@@ -485,34 +556,75 @@ describe('WechatVirtualPayment', () => {
     }
   });
 
-  it('decrypts a safe-mode message and validates its embedded AppID', () => {
-    const timestamp = '1700000000';
-    const nonce = 'nonce-2';
-    const message = JSON.stringify({ Event: 'xpay_goods_deliver_notify' });
-    const encrypted = encrypt(message, config.appId);
-    const signature = createHash('sha1')
-      .update(
-        [config.messageToken, timestamp, nonce, encrypted].sort().join(''),
-      )
-      .digest('hex');
+  it.each(['headers', 'body'] as const)(
+    'bounds a real stalled HTTP %s read without relying on a pre-aborted mock',
+    async (stalledStage) => {
+      const server = createServer((_request, response) => {
+        if (stalledStage === 'body') {
+          response.writeHead(200, { 'Content-Type': 'application/json' });
+          response.flushHeaders();
+          response.write('{');
+        }
+        // Intentionally never finish headers/body; the real AbortSignal must fire.
+      });
+      await new Promise<void>((resolve) =>
+        server.listen(0, '127.0.0.1', resolve),
+      );
+      try {
+        const address = server.address();
+        if (!address || typeof address === 'string')
+          throw new Error('Missing test server port');
+        const client = new WechatVirtualPayment(config, {
+          // Redirect only the external HTTP boundary to a loopback fault server.
+          fetch: (_url, init) =>
+            globalThis.fetch(`http://127.0.0.1:${address.port}`, init),
+          getAccessToken: jest.fn().mockResolvedValue('access-token'),
+        });
+        await expect(
+          client.notifyProvideGoods('MA1234567890ABCDEF'),
+        ).rejects.toMatchObject({
+          code: WechatVirtualPaymentErrorCode.REQUEST_TIMEOUT,
+          message: '',
+        });
+      } finally {
+        server.closeAllConnections();
+        await new Promise<void>((resolve, reject) =>
+          server.close((error) => (error ? reject(error) : resolve())),
+        );
+      }
+    },
+    10_000,
+  );
+
+  it('decrypts the official JSON safe-mode worked example without a local encoder', () => {
+    const client = new WechatVirtualPayment(
+      { ...config, ...officialJsonMessage },
+      { getAccessToken: jest.fn() },
+    );
 
     expect(
-      createClient().decryptMessage(encrypted, signature, timestamp, nonce),
-    ).toBe(message);
+      client.decryptMessage(
+        officialJsonMessage.encrypted,
+        officialJsonMessage.signature,
+        officialJsonMessage.timestamp,
+        officialJsonMessage.nonce,
+      ),
+    ).toBe(officialJsonMessage.plaintext);
   });
 
-  it('rejects a message encrypted for another AppID', () => {
-    const timestamp = '1700000000';
-    const nonce = 'nonce-3';
-    const encrypted = encrypt('{}', 'wx-another-app');
-    const signature = createHash('sha1')
-      .update(
-        [config.messageToken, timestamp, nonce, encrypted].sort().join(''),
-      )
-      .digest('hex');
+  it('rejects the same official ciphertext with a different configured AppID', () => {
+    const client = new WechatVirtualPayment(
+      { ...config, ...officialJsonMessage, appId: 'wx-another-app' },
+      { getAccessToken: jest.fn() },
+    );
 
     try {
-      createClient().decryptMessage(encrypted, signature, timestamp, nonce);
+      client.decryptMessage(
+        officialJsonMessage.encrypted,
+        officialJsonMessage.signature,
+        officialJsonMessage.timestamp,
+        officialJsonMessage.nonce,
+      );
       throw new Error('应拒绝不匹配的 AppID');
     } catch (error) {
       expect(error).toBeInstanceOf(WechatVirtualPaymentError);
@@ -522,35 +634,25 @@ describe('WechatVirtualPayment', () => {
     }
   });
 
+  it('rejects a safe-mode message signed with signature instead of msg_signature', () => {
+    const client = new WechatVirtualPayment(
+      { ...config, ...officialJsonMessage },
+      { getAccessToken: jest.fn() },
+    );
+    expect(() =>
+      client.decryptMessage(
+        officialJsonMessage.encrypted,
+        '6c5c811b55cc85e0e1b54100749188c20beb3f5d',
+        officialJsonMessage.timestamp,
+        officialJsonMessage.nonce,
+      ),
+    ).toThrow(WechatVirtualPaymentError);
+  });
+
   function createClient(): WechatVirtualPayment {
     return new WechatVirtualPayment(config, {
       getAccessToken: jest.fn().mockResolvedValue('access-token'),
     });
   }
-
-  function encrypt(message: string, targetAppId: string): string {
-    const messageBuffer = Buffer.from(message, 'utf8');
-    const length = Buffer.alloc(4);
-    length.writeUInt32BE(messageBuffer.length);
-    const packed = Buffer.concat([
-      Buffer.alloc(16, 1),
-      length,
-      messageBuffer,
-      Buffer.from(targetAppId, 'utf8'),
-    ]);
-    const paddingLength = 32 - (packed.length % 32);
-    const padded = Buffer.concat([
-      packed,
-      Buffer.alloc(paddingLength, paddingLength),
-    ]);
-    const cipher = createCipheriv(
-      'aes-256-cbc',
-      aesKey,
-      aesKey.subarray(0, 16),
-    );
-    cipher.setAutoPadding(false);
-    return Buffer.concat([cipher.update(padded), cipher.final()]).toString(
-      'base64',
-    );
-  }
 });
+import { createServer } from 'node:http';

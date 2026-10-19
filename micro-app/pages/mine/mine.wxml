@@ -10,6 +10,19 @@
       </view>
     </view>
 
+    <view class="support-card">
+      <text class="support-title">给开发者加点油</text>
+      <text class="support-description">如果机车助理对你有帮助，欢迎自愿赞赏，支持持续维护。</text>
+      <button
+        class="support-action"
+        hover-class="support-action--pressed"
+        aria-label="自愿赞赏，支持开发者"
+        bindtap="navigateToTip"
+      >
+        <text>赞赏支持</text>
+      </button>
+    </view>
+
     <view class="section">
       <text class="section-title">车辆管理</text>
       <view class="action-card">
@@ -31,19 +44,6 @@
     <view class="section">
       <text class="section-title">服务与支持</text>
       <view class="action-card">
-        <button
-          class="action-row"
-          hover-class="action-row--pressed"
-          aria-label="支持开发者，自愿赞赏"
-          bindtap="navigateToTip"
-        >
-          <view class="action-content">
-            <text class="action-title">支持开发者</text>
-            <text class="action-desc">如果机车助理对你有帮助，可以自愿赞赏</text>
-          </view>
-          <view class="action-chevron" aria-hidden="true"></view>
-        </button>
-        <view class="action-divider"></view>
         <button
           class="action-row"
           hover-class="action-row--pressed"
