@@ -23,7 +23,18 @@ pnpm build
 pnpm tmg ./src/database/migrations/ChangeName
 ```
 
-migration 必须通过命令生成。E2E 会写入数据，只能使用隔离测试库；支付套件要求 `E2E_DATABASE_URL` 指向本机、名称以 `moto_payment_e2e_` 开头的数据库。
+migration 必须通过命令生成。所有 E2E 套件只使用 `E2E_DATABASE_URL`，不回退到 `DATABASE_URL` 或 `.env` 中的业务库。该 URL 必须使用 `postgres` / `postgresql` 协议、指向本机、库名以 `moto_payment_e2e_` 开头，且不能带查询参数或片段；不符合时在加载测试应用前退出。
+
+E2E 会写入数据，请先创建专用测试库。首次用支付套件初始化表，之后可运行全部或单独的 API 套件：
+
+```sh
+export E2E_DATABASE_URL='postgresql://<测试用户>:<测试密码>@127.0.0.1:5432/moto_payment_e2e_local'
+pnpm test:e2e payment.e2e-spec.ts
+pnpm test:e2e
+pnpm test:e2e:guard
+```
+
+`test:e2e:guard` 使用本地 TCP 探针检查误连接，不需要业务数据库；设置上述已初始化的测试库 URL 后，也会验证合法配置能覆盖原有 `DATABASE_URL`。
 
 测试请使用 `pnpm test` / `pnpm test:e2e`，脚本已启用 Jest 加载 NestJS 12 ESM 包所需的 VM 模块支持；应用仍保持 CommonJS。
 

@@ -34,22 +34,6 @@ import {
 
 jest.setTimeout(30_000);
 
-// Only this disposable local database may be initialized by this suite.
-const testDatabaseUrl = (): string => {
-  const value = process.env.E2E_DATABASE_URL;
-  if (!value) throw new Error('E2E_DATABASE_URL is required');
-  const url = new URL(value);
-  if (
-    !['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname) ||
-    !/^\/moto_payment_e2e_[a-z0-9_]+$/u.test(url.pathname)
-  ) {
-    throw new Error(
-      'E2E_DATABASE_URL must point to a disposable local test DB',
-    );
-  }
-  return value;
-};
-
 interface RemoteOrder {
   env_type: number;
   order_id: string;
@@ -168,7 +152,8 @@ describe('Virtual payment HTTP flow (real PostgreSQL, protocol-based WeChat simu
   };
 
   beforeAll(async () => {
-    const databaseUrl = testDatabaseUrl();
+    // Validated by the shared globalSetup before any suite/application loads.
+    const databaseUrl = process.env.E2E_DATABASE_URL;
     database = new DataSource({
       type: 'postgres',
       url: databaseUrl,
