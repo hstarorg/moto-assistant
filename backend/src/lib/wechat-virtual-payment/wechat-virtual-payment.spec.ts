@@ -328,24 +328,33 @@ describe('WechatVirtualPayment', () => {
     });
   });
 
-  it('confirms delivery with the documented token-only API', async () => {
-    const fetchMock = jest
-      .fn()
-      .mockResolvedValue(new Response(JSON.stringify({ errcode: 0 })));
-    const client = new WechatVirtualPayment(config, {
-      fetch: fetchMock as typeof fetch,
-      getAccessToken: jest.fn().mockResolvedValue('access-token'),
-    });
-    await client.notifyProvideGoods('MA1234567890ABCDEF');
-    const [url, request] = fetchMock.mock.calls[0] as [URL, RequestInit];
-    expect(url.pathname).toBe('/xpay/notify_provide_goods');
-    expect(url.searchParams.get('access_token')).toBe('access-token');
-    expect(url.searchParams.has('pay_sig')).toBe(false);
-    expect(JSON.parse(request.body as string)).toEqual({
-      order_id: 'MA1234567890ABCDEF',
-      env: 0,
-    });
-  });
+  it.each([
+    [0, 'a0691dc36196b63575ed3d7c3fd938cf0cf2d8aafe016295812843f13d670cca'],
+    [1, 'cf27e0027eb087a14b62f180754b38dc9f94ee0ea72ce3b2a2ef242404ade7f0'],
+  ] as const)(
+    'signs delivery confirmation for environment %i',
+    async (environment, expectedPaySig) => {
+      const fetchMock = jest
+        .fn()
+        .mockResolvedValue(new Response(JSON.stringify({ errcode: 0 })));
+      const client = new WechatVirtualPayment(
+        { ...config, environment },
+        {
+          fetch: fetchMock as typeof fetch,
+          getAccessToken: jest.fn().mockResolvedValue('access-token'),
+        },
+      );
+      await client.notifyProvideGoods('MA1234567890ABCDEF');
+      const [url, request] = fetchMock.mock.calls[0] as [URL, RequestInit];
+      expect(url.pathname).toBe('/xpay/notify_provide_goods');
+      expect(url.searchParams.get('access_token')).toBe('access-token');
+      expect(url.searchParams.get('pay_sig')).toBe(expectedPaySig);
+      expect(JSON.parse(request.body as string)).toEqual({
+        order_id: 'MA1234567890ABCDEF',
+        env: environment,
+      });
+    },
+  );
 
   it('rejects failed delivery confirmations with an SDK error code', async () => {
     const client = new WechatVirtualPayment(config, {
@@ -393,6 +402,12 @@ describe('WechatVirtualPayment', () => {
       ];
       expect(firstUrl.searchParams.get('access_token')).toBe('old-token');
       expect(secondUrl.searchParams.get('access_token')).toBe('new-token');
+      expect(firstUrl.searchParams.get('pay_sig')).toBe(
+        'a0691dc36196b63575ed3d7c3fd938cf0cf2d8aafe016295812843f13d670cca',
+      );
+      expect(secondUrl.searchParams.get('pay_sig')).toBe(
+        firstUrl.searchParams.get('pay_sig'),
+      );
       expect(secondRequest.body).toBe(firstRequest.body);
     },
   );

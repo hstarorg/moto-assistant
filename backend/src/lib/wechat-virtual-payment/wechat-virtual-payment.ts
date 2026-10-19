@@ -184,7 +184,6 @@ export class WechatVirtualPayment {
         request: WechatVirtualPaymentErrorCode.PROVIDE_REQUEST_FAILED,
         response: WechatVirtualPaymentErrorCode.PROVIDE_RESPONSE_INVALID,
       },
-      false,
     );
   }
 
