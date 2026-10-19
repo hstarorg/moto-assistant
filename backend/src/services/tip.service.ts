@@ -211,6 +211,7 @@ export class TipService {
   async reconcileOrders(afterId: number): Promise<number> {
     const orders = await this.tipOrders.find({
       where: {
+        createdAt: MoreThanOrEqual(new Date(Date.now() - 24 * 60 * 60 * 1000)),
         environment: this.virtualPayment.getEnvironment(),
         id: MoreThan(afterId),
         status: In([TipOrderStatus.PENDING, TipOrderStatus.PAID]),

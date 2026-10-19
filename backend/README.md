@@ -43,13 +43,18 @@ Entity 发生变化后，可生成并检查新的 migration：
 pnpm tmg ./src/database/migrations/ChangeName
 ```
 
-运行 API 集成测试：
+运行支付接口集成测试（使用独立、可丢弃的本机 PostgreSQL 数据库）：
 
 ```sh
-pnpm test:e2e
+E2E_DATABASE_URL='postgresql://<测试用户>:<测试密码>@127.0.0.1:<端口>/moto_payment_e2e_<名称>' \
+  pnpm test:e2e payment.e2e-spec.ts
 ```
 
-该测试会在 `DATABASE_URL` 指向的数据库中新增测试数据，只能连接开发数据库。
+支付套件会创建 schema、执行现有 migration，并新增测试数据；只接受 loopback 地址和
+`moto_payment_e2e_` 前缀的数据库，不读取业务 `DATABASE_URL`。使用真实 PostgreSQL、
+鉴权和应用服务，仅替换外部微信 HTTP 请求；不需要真实微信凭据。
+原有 `api.e2e-spec.ts` 仍使用 `DATABASE_URL`，运行全套 `pnpm test:e2e` 时需将它也显式
+指向同一测试库（先执行支付套件初始化结构），禁止指向生产或有用户数据的数据库。
 
 ## 赞赏接口
 
@@ -90,11 +95,13 @@ https://<API域名>/api/v1/wechat/messages
 退款完成；全额退款单到达状态 8 且原支付单剩余金额为 0 后，才标记 `refunded`。
 
 启用虚拟支付后，后台补偿任务在启动时及每 5 分钟执行一次，每批最多扫描 50 笔当前
-环境的 `pending` / `paid` 订单，按订单 ID 游标轮转，整轮结束后从头重试。任务不会
+环境、最近 24 小时创建的 `pending` / `paid` 订单，按订单 ID 游标轮转，整轮结束后从头重试。任务不会
 重叠执行，单笔失败不会阻断后续订单。主动查询到微信状态 2 或 3 时，在本地事务提交后
 调用 `notify_provide_goods`；若确认失败，下一轮继续重试，微信已发货的订单不重复确认。
 该任务不新增配置项；多实例可能重复查询或确认，状态更新由事务行锁保护，并以微信侧
 订单状态为准。订单量超过单批上限时，一轮完整扫描会跨越多个调度周期。
+超过 24 小时的订单不再自动扫描，不删除、不强制关闭；消息推送和用户主动查单仍可
+同步其状态。历史异常订单通过只读数据库查询、服务日志和微信后台核对处理。
 
 订单重新签名、查单、退款查询和发货确认均校验订单环境。历史订单与当前配置不一致时，
 返回 HTTP 409 和 `TIP_ORDER_ENVIRONMENT_MISMATCH`，不会使用当前 AppKey 操作旧环境订单。

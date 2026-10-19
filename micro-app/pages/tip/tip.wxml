@@ -20,7 +20,7 @@
             <input
               class="amount-input"
               type="number"
-              maxlength="3"
+              maxlength="-1"
               value="{{amountInput}}"
               placeholder="1 - 200"
               disabled="{{isPaying || paymentState === 'pending'}}"

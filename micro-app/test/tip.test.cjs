@@ -430,3 +430,14 @@ test('warns about an expired record when reopening the page', () => {
   assert.equal(f.storage.has('pendingTipOrder'), false);
   assert.ok(f.notifications.some(value => value.includes('核对微信账单')));
 });
+
+test('rejects invalid amounts without turning them into another payable amount', async () => {
+  for (const value of ['1.5', '-5', '1e2', '1000']) {
+    const f = setup();
+    const page = f.page();
+    page.updateAmount({ detail: { value } });
+    assert.ok(page.data.amountError, `${value} must be rejected`);
+    await page.handlePrimaryAction();
+    assert.equal(f.events.includes('created'), false);
+  }
+});

@@ -30,6 +30,16 @@ const DEFAULT_PENDING_MESSAGE =
 const PENDING_EXPIRED_MESSAGE = '本地查询记录已过期，请先核对微信账单再赞赏';
 let paymentFlowVersion = 0;
 
+const getAmountError = (input: string): string => {
+  const amount = Number(input);
+  return /^\d+$/u.test(input) &&
+    Number.isSafeInteger(amount) &&
+    amount >= 1 &&
+    amount <= MAXIMUM_AMOUNT_YUAN
+    ? ''
+    : `请输入 1 至 ${MAXIMUM_AMOUNT_YUAN} 元的整数金额`;
+};
+
 interface StoredPendingOrder {
   orderNo: string;
   savedAt: number;
@@ -278,39 +288,30 @@ Page({
   },
 
   updateAmount(event: WechatMiniprogram.Input): string {
-    const normalized = event.detail.value
-      .replace(/\D/gu, '')
-      .replace(/^0+/u, '')
-      .slice(0, 3);
+    const input = event.detail.value;
+    const normalized = /^\d+$/u.test(input)
+      ? input.replace(/^0+(?=\d)/u, '')
+      : input;
     const amount = Number(normalized);
-    const error =
-      normalized && amount > MAXIMUM_AMOUNT_YUAN
-        ? `单次最多赞赏 ${MAXIMUM_AMOUNT_YUAN} 元`
-        : '';
+    const error = normalized ? getAmountError(normalized) : '';
     this.setData({
       actionLabel:
         normalized && !error ? `确认赞赏 ¥${amount}` : '请输入赞赏金额',
       amountError: error,
       amountInput: normalized,
       paymentState: 'idle',
-      selectedAmount: QUICK_AMOUNTS.includes(
-        amount as (typeof QUICK_AMOUNTS)[number]
-      )
-        ? amount
-        : 0
+      selectedAmount:
+        !error &&
+        QUICK_AMOUNTS.includes(amount as (typeof QUICK_AMOUNTS)[number])
+          ? amount
+          : 0
     });
     return normalized;
   },
 
   validateAmount() {
-    const amount = Number(this.data.amountInput);
     this.setData({
-      amountError:
-        Number.isSafeInteger(amount) &&
-        amount >= 1 &&
-        amount <= MAXIMUM_AMOUNT_YUAN
-          ? ''
-          : `请输入 1 至 ${MAXIMUM_AMOUNT_YUAN} 元的整数金额`
+      amountError: getAmountError(this.data.amountInput)
     });
   },
 
@@ -324,14 +325,9 @@ Page({
     }
 
     const amount = Number(this.data.amountInput);
-    if (
-      !Number.isSafeInteger(amount) ||
-      amount < 1 ||
-      amount > MAXIMUM_AMOUNT_YUAN
-    ) {
-      this.setData({
-        amountError: `请输入 1 至 ${MAXIMUM_AMOUNT_YUAN} 元的整数金额`
-      });
+    const amountError = getAmountError(this.data.amountInput);
+    if (amountError) {
+      this.setData({ amountError });
       return;
     }
     if (!isVirtualPaymentSupported()) {
@@ -360,15 +356,7 @@ Page({
       if (flowVersion !== paymentFlowVersion) {
         return;
       }
-      this.setData({
-        actionLabel: '正在确认支付结果',
-        lastOrderNo: order.orderNo
-      });
-      const status = await this._pollOrder(order.orderNo, flowVersion);
-      if (flowVersion !== paymentFlowVersion) {
-        return;
-      }
-      this._applyOrderStatus(status, order.orderNo);
+      await this._confirmOrder(order.orderNo, flowVersion);
     } catch (error) {
       if (flowVersion !== paymentFlowVersion) {
         return;
@@ -385,11 +373,7 @@ Page({
         return;
       }
       if (this.data.lastOrderNo) {
-        const orderNo = this.data.lastOrderNo;
-        const status = await this._pollOrder(orderNo, flowVersion);
-        if (flowVersion === paymentFlowVersion) {
-          this._applyOrderStatus(status, orderNo);
-        }
+        await this._confirmOrder(this.data.lastOrderNo, flowVersion);
         return;
       }
       reportPaymentFailure('create', error);
@@ -481,23 +465,22 @@ Page({
     orderNo: string,
     flowVersion: number
   ): Promise<OrderQueryResult> {
-    let lastStatus: TipOrderStatus = 'pending';
     for (const delay of ORDER_POLL_DELAYS) {
       if (flowVersion !== paymentFlowVersion) {
-        return { status: lastStatus };
+        return { status: 'pending' };
       }
       if (delay > 0) {
         await wait(delay);
       }
       if (flowVersion !== paymentFlowVersion) {
-        return { status: lastStatus };
+        return { status: 'pending' };
       }
       try {
         if (app.globalData.loginStatus !== 'ready') {
           await app.doLogin();
         }
         if (flowVersion !== paymentFlowVersion) {
-          return { status: lastStatus };
+          return { status: 'pending' };
         }
         const { data } = await ajax.get<TipOrderResponse>(
           `/tips/orders/${encodeURIComponent(orderNo)}`,
@@ -506,9 +489,8 @@ Page({
         if (!['pending', 'paid', 'refunded', 'closed'].includes(data?.status)) {
           throw new Error('订单查询响应不正确');
         }
-        lastStatus = data.status;
-        if (lastStatus !== 'pending') {
-          return { status: lastStatus };
+        if (data.status !== 'pending') {
+          return { status: data.status };
         }
       } catch (error) {
         reportPaymentFailure('query', error, orderNo);
@@ -548,7 +530,15 @@ Page({
         };
       }
     }
-    return { status: lastStatus };
+    return { status: 'pending' };
+  },
+
+  async _confirmOrder(orderNo: string, flowVersion: number) {
+    this.setData({ actionLabel: '正在确认支付结果', lastOrderNo: orderNo });
+    const status = await this._pollOrder(orderNo, flowVersion);
+    if (flowVersion === paymentFlowVersion) {
+      this._applyOrderStatus(status, orderNo);
+    }
   },
 
   async _refreshPendingOrder() {
@@ -569,10 +559,7 @@ Page({
     const flowVersion = ++paymentFlowVersion;
     this.setData({ actionLabel: '正在查询支付结果', isPaying: true });
     try {
-      const status = await this._pollOrder(orderNo, flowVersion);
-      if (flowVersion === paymentFlowVersion) {
-        this._applyOrderStatus(status, orderNo);
-      }
+      await this._confirmOrder(orderNo, flowVersion);
     } finally {
       if (flowVersion === paymentFlowVersion) {
         this.setData({ isPaying: false });
@@ -582,22 +569,6 @@ Page({
 
   _applyOrderStatus(result: OrderQueryResult, orderNo: string) {
     const { status } = result;
-    if (status === 'unavailable') {
-      clearPendingOrder();
-      this._restoreIdleAction();
-      messageBox.toast(result.message ?? '该订单暂不可查询');
-      return;
-    }
-    if (status === 'paid') {
-      clearPendingOrder();
-      wx.vibrateShort({ type: 'light' });
-      this.setData({
-        actionLabel: '再次赞赏',
-        lastOrderNo: orderNo,
-        paymentState: 'success'
-      });
-      return;
-    }
     if (status === 'pending') {
       this.setData({
         actionLabel: '重新查询支付结果',
@@ -607,22 +578,32 @@ Page({
       });
       return;
     }
-    messageBox.toast(
-      status === 'refunded' ? '该笔赞赏已退款' : '该笔支付未完成'
-    );
     clearPendingOrder();
+    if (status === 'paid') {
+      wx.vibrateShort({ type: 'light' });
+      this.setData({
+        actionLabel: '再次赞赏',
+        lastOrderNo: orderNo,
+        paymentState: 'success'
+      });
+      return;
+    }
     this._restoreIdleAction();
+    messageBox.toast(
+      status === 'unavailable'
+        ? (result.message ?? '该订单暂不可查询')
+        : status === 'refunded'
+          ? '该笔赞赏已退款'
+          : '该笔支付未完成'
+    );
   },
 
   _restoreIdleAction() {
     const amount = Number(this.data.amountInput);
     this.setData({
-      actionLabel:
-        Number.isSafeInteger(amount) &&
-        amount >= 1 &&
-        amount <= MAXIMUM_AMOUNT_YUAN
-          ? `确认赞赏 ¥${amount}`
-          : '请输入赞赏金额',
+      actionLabel: !getAmountError(this.data.amountInput)
+        ? `确认赞赏 ¥${amount}`
+        : '请输入赞赏金额',
       lastOrderNo: '',
       pendingSavedAt: 0,
       pendingMessage: DEFAULT_PENDING_MESSAGE,

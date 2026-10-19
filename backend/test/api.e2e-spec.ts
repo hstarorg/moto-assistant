@@ -63,7 +63,8 @@ describe('API positive flow (e2e)', () => {
       .send({ code: 'e2e-code' })
       .expect(200);
     const account = accountResponse.body as AccountTokenResponse;
-    expect(account).toEqual({ token: expect.any(String) });
+    expect(typeof account.token).toBe('string');
+    expect(account.token.length).toBeGreaterThan(0);
 
     await request(app.getHttpServer())
       .post('/api/v1/motos')

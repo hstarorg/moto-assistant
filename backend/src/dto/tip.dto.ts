@@ -1,4 +1,3 @@
-import { Type } from 'class-transformer';
 import {
   IsInt,
   IsNotEmpty,
@@ -9,7 +8,6 @@ import {
 } from 'class-validator';
 
 export class CreateTipOrderDto {
-  @Type(() => Number)
   @IsInt()
   @Min(1)
   amountYuan!: number;

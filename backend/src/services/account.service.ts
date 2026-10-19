@@ -38,7 +38,7 @@ export class AccountService {
       .orUpdate(['open_id'], ['open_id'])
       .returning(['id'])
       .execute();
-    const userId = result.identifiers[0]?.id;
+    const userId: unknown = result.identifiers[0]?.id;
 
     if (typeof userId !== 'number') {
       throw new InternalServerErrorException('登录失败');
