@@ -32,6 +32,12 @@ function setup() {
     }
   };
   const wx = {
+    canIUse: () => true,
+    requestVirtualPayment(options) {
+      events.push('payment');
+      assert.ok(storage.has('pendingTipOrder'), 'persist before invoking WeChat');
+      payment.promise.then(options.success, options.fail);
+    },
     getRealtimeLogManager() {
       return { warn: (event, value) => diagnostics.push({ event, value }) };
     },
@@ -84,27 +90,13 @@ function setup() {
       app.globalData.loginStatus = 'ready';
     }
   };
-  class VirtualPaymentError extends Error {
-    constructor(reason, errCode) {
-      super();
-      this.reason = reason;
-      this.errCode = errCode;
-    }
-  }
-  const virtual = {
-    VirtualPaymentError,
-    isVirtualPaymentSupported: () => true,
-    shouldRetryPaymentSession: error =>
-      [-15005, -15007].includes(error.errCode),
-    requestVirtualPayment: () => {
-      events.push('payment');
-      assert.ok(
-        storage.has('pendingTipOrder'),
-        'persist before invoking WeChat'
-      );
-      return payment.promise;
-    }
-  };
+  // Exercise the real wrapper; fake only the native WeChat API boundary.
+  const virtual = {};
+  vm.runInNewContext(ts.transpileModule(readFileSync(
+    path.join(__dirname, '../utils/virtualPayment.ts'), 'utf8'
+  ), {
+    compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.CommonJS }
+  }).outputText, { wx, exports: virtual });
   let options;
   const source = readFileSync(
     path.join(__dirname, '../pages/tip/tip.ts'),
@@ -154,7 +146,6 @@ function setup() {
     wx,
     created,
     virtual,
-    VirtualPaymentError,
     notifications,
     diagnostics,
     ApiError,
@@ -189,7 +180,7 @@ test('checks the existing order after an uncertain failure and blocks a second p
   const page = f.page();
   const flow = page.handlePrimaryAction();
   await untilPayment(f);
-  f.payment.reject(new f.VirtualPaymentError('failed', -1));
+  f.payment.reject({ errCode: -1 });
   await flow;
   assert.equal(page.data.paymentState, 'pending');
   await page.handlePrimaryAction();
@@ -203,7 +194,7 @@ test('recognizes a successful server order despite a failed client callback', as
   const page = f.page();
   const flow = page.handlePrimaryAction();
   await untilPayment(f);
-  f.payment.reject(new f.VirtualPaymentError('failed'));
+  f.payment.reject({});
   await flow;
   assert.equal(page.data.paymentState, 'success');
   assert.equal(f.storage.has('pendingTipOrder'), false);
@@ -240,7 +231,7 @@ test('clears a definitively cancelled order without an error notification', asyn
   const page = f.page();
   const flow = page.handlePrimaryAction();
   await untilPayment(f);
-  f.payment.reject(new f.VirtualPaymentError('cancelled', -2));
+  f.payment.reject({ errCode: -2 });
   await flow;
   assert.equal(page.data.paymentState, 'idle');
   assert.equal(f.storage.has('pendingTipOrder'), false);
@@ -271,18 +262,77 @@ test('retries an expired payment session once and persists the replacement order
     attempt += 1;
     return { data: { ...f.created, orderNo: `MA1234567${attempt}` } };
   };
-  f.virtual.requestVirtualPayment = async () => {
+  f.wx.requestVirtualPayment = options => {
     assert.equal(
       f.storage.get('pendingTipOrder').orderNo,
       `MA1234567${attempt}`
     );
-    throw new f.VirtualPaymentError('failed', -15007);
+    options.fail({ errCode: -15007 });
   };
   const page = f.page();
   await page.handlePrimaryAction();
   assert.equal(attempt, 2);
   assert.equal(page.data.isPaying, false);
   assert.equal(f.storage.has('pendingTipOrder'), false);
+});
+
+test('native numeric failure codes take precedence over ambiguous cancel text', async () => {
+  const f = setup();
+  f.wx.requestVirtualPayment = options => options.fail({
+    errCode: -15010,
+    // Synthetic hostile text, not a captured WeChat errmsg.
+    errMsg: 'requestVirtualPayment:fail product unavailable; not cancelled'
+  });
+  await assert.rejects(f.virtual.requestVirtualPayment(f.created.payment), error => {
+    assert.equal(error.reason, 'failed');
+    assert.equal(error.errCode, -15010);
+    return true;
+  });
+});
+
+test('native payment parameters pass through without parsing or resigning signData', async () => {
+  const f = setup();
+  f.wx.requestVirtualPayment = options => {
+    assert.equal(options.mode, 'short_series_goods');
+    assert.equal(options.signData, '{}');
+    assert.equal(options.paySig, 'test');
+    assert.equal(options.signature, 'test');
+    options.success({ errMsg: 'requestVirtualPayment:ok' });
+  };
+  await f.virtual.requestVirtualPayment(f.created.payment);
+});
+
+test('native documented signature and session errors are distinguished from cancellation and unknown results', async () => {
+  // wx.requestVirtualPayment official error table; the one-retry choice is our policy.
+  for (const [errCode, reason, retry] of [
+    [-2, 'cancelled', false],
+    [-15005, 'failed', true],
+    [-15007, 'failed', true],
+    [-15006, 'failed', false],
+    [-1, 'failed', false],
+    [-5, 'failed', false],
+    [-99999, 'failed', false]
+  ]) {
+    const f = setup();
+    f.wx.requestVirtualPayment = options => options.fail({ errCode });
+    await assert.rejects(f.virtual.requestVirtualPayment(f.created.payment), error => {
+      assert.equal(error.reason, reason);
+      assert.equal(error.errCode, errCode);
+      assert.equal(f.virtual.shouldRetryPaymentSession(error), retry);
+      return true;
+    });
+  }
+});
+
+test('native unsupported payment never creates a backend order', async () => {
+  for (const supported of [false, true]) {
+    const f = setup();
+    f.wx.canIUse = () => supported;
+    if (supported) delete f.wx.requestVirtualPayment;
+    await f.page().handlePrimaryAction();
+    assert.equal(f.events.includes('created'), false);
+    assert.equal(f.events.includes('payment'), false);
+  }
 });
 
 test('does not use a previous successful order if starting the next payment fails', async () => {
@@ -391,9 +441,10 @@ test('records the actual WeChat failure code without payment signatures or raw e
   const page = f.page();
   const flow = page.handlePrimaryAction();
   await untilPayment(f);
-  const error = new f.VirtualPaymentError('failed', -15010);
-  error.message = 'private-error-with-signature';
-  f.payment.reject(error);
+  f.payment.reject({
+    errCode: -15010,
+    errMsg: 'private-error-with-signature'
+  });
   await flow;
   assert.equal(f.diagnostics.length, 1);
   assert.equal(f.diagnostics[0].value.code, -15010);

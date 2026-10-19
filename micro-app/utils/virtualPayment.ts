@@ -55,7 +55,8 @@ export const requestVirtualPayment = (
       },
       fail(result) {
         const cancelled =
-          result.errCode === -2 || /cancel/i.test(result.errMsg ?? '');
+          result.errCode === -2 ||
+          (result.errCode === undefined && /cancel/i.test(result.errMsg ?? ''));
         reject(
           new VirtualPaymentError(
             cancelled ? 'cancelled' : 'failed',
