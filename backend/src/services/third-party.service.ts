@@ -2,6 +2,7 @@ import {
   BadGatewayException,
   ForbiddenException,
   Injectable,
+  Logger,
   type OnApplicationShutdown,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -48,6 +49,7 @@ interface R2Config {
 
 @Injectable()
 export class ThirdPartyService implements OnApplicationShutdown {
+  private readonly logger = new Logger(ThirdPartyService.name);
   private accessToken?: { expiresAt: number; value: string };
   private accessTokenRequest?: Promise<string>;
   private readonly r2: R2Config;
@@ -85,7 +87,13 @@ export class ThirdPartyService implements OnApplicationShutdown {
     );
   }
 
-  async getWechatAccessToken(): Promise<string> {
+  async getWechatAccessToken(rejectedToken?: string): Promise<string> {
+    if (
+      rejectedToken !== undefined &&
+      this.accessToken?.value === rejectedToken
+    ) {
+      this.accessToken = undefined;
+    }
     if (
       this.accessToken &&
       this.accessToken.expiresAt > Date.now() + 60 * 1000
@@ -143,19 +151,21 @@ export class ThirdPartyService implements OnApplicationShutdown {
       grant_type: 'authorization_code',
     }).toString();
 
-    let response: Response;
-    try {
-      response = await fetch(url);
-    } catch {
-      throw new BadGatewayException('微信登录服务暂时不可用');
-    }
-
-    if (!response.ok) {
-      throw new BadGatewayException('微信登录服务暂时不可用');
-    }
-
-    const session = (await response.json()) as WechatSessionResponse;
-    if (!session.openid || !session.session_key) {
+    const session = await this.requestWechatJson<WechatSessionResponse>(
+      url,
+      '微信登录服务暂时不可用',
+    );
+    if (
+      typeof session.openid !== 'string' ||
+      !session.openid ||
+      typeof session.session_key !== 'string' ||
+      !session.session_key
+    ) {
+      this.logWechatFailure(
+        '/sns/jscode2session',
+        'WECHAT_LOGIN_INVALID',
+        session.errcode,
+      );
       throw new ForbiddenException({
         code: 'WECHAT_LOGIN_INVALID',
         message: '微信登录凭证无效',
@@ -172,29 +182,76 @@ export class ThirdPartyService implements OnApplicationShutdown {
       secret: this.wechat.appSecret,
     }).toString();
 
-    let response: Response;
-    try {
-      response = await fetch(url, { signal: AbortSignal.timeout(5000) });
-    } catch {
-      throw new BadGatewayException('微信服务暂时不可用');
-    }
-    if (!response.ok) {
-      throw new BadGatewayException('微信服务暂时不可用');
-    }
-
-    const result = (await response.json()) as WechatAccessTokenResponse;
+    const result = await this.requestWechatJson<WechatAccessTokenResponse>(
+      url,
+      '微信服务暂时不可用',
+    );
     if (
+      typeof result.access_token !== 'string' ||
       !result.access_token ||
       !Number.isSafeInteger(result.expires_in) ||
       (result.expires_in ?? 0) <= 0
     ) {
-      throw new BadGatewayException('微信服务暂时不可用');
+      this.logWechatFailure(
+        '/cgi-bin/token',
+        'WECHAT_ACCESS_TOKEN_FAILED',
+        result.errcode,
+      );
+      throw new BadGatewayException({
+        code: 'WECHAT_ACCESS_TOKEN_FAILED',
+        message: '微信服务暂时不可用',
+      });
     }
     this.accessToken = {
       expiresAt: Date.now() + (result.expires_in ?? 0) * 1000,
       value: result.access_token,
     };
     return result.access_token;
+  }
+
+  private async requestWechatJson<T>(url: URL, message: string): Promise<T> {
+    const signal = AbortSignal.timeout(5000);
+    try {
+      const response = await fetch(url, { signal });
+      if (!response.ok) {
+        throw new Error();
+      }
+      const result: unknown = await response.json();
+      if (
+        typeof result !== 'object' ||
+        result === null ||
+        Array.isArray(result)
+      ) {
+        throw new Error();
+      }
+      return result as T;
+    } catch {
+      const code = signal.aborted
+        ? 'WECHAT_REQUEST_TIMEOUT'
+        : 'WECHAT_REQUEST_FAILED';
+      this.logWechatFailure(url.pathname, code);
+      throw new BadGatewayException({
+        code,
+        message,
+      });
+    }
+  }
+
+  private logWechatFailure(
+    operation: string,
+    code: string,
+    upstreamCode?: number,
+  ): void {
+    this.logger.warn(
+      JSON.stringify({
+        event: 'wechat_request_failure',
+        operation,
+        code,
+        upstreamCode: Number.isSafeInteger(upstreamCode)
+          ? upstreamCode
+          : undefined,
+      }),
+    );
   }
 
   private createImageKey(originalName: string, prefix: string): string {

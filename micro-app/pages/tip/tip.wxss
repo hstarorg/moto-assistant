@@ -262,6 +262,24 @@
   color: #6f5126;
 }
 
+.pending-back {
+  display: inline-flex;
+  align-items: center;
+  min-height: 88rpx;
+  margin: 16rpx 0 0;
+  padding: 8rpx 20rpx;
+  border: 1rpx solid currentColor;
+  border-radius: 12rpx;
+  background: transparent;
+  color: #6f5126;
+  font-size: 24rpx;
+  line-height: 1.8;
+}
+
+.pending-back::after {
+  border: 0;
+}
+
 .notice-card {
   background: #eef2f4;
 }
@@ -372,6 +390,10 @@
   }
 
   .status-card--pending .status-description {
+    color: #e3c992;
+  }
+
+  .pending-back {
     color: #e3c992;
   }
 

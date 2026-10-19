@@ -14,6 +14,10 @@ import type {
 } from '../../types';
 
 type PaymentState = 'idle' | 'pending' | 'success';
+type OrderQueryResult = {
+  status: TipOrderStatus | 'unavailable';
+  message?: string;
+};
 
 const app = getApp<MotoAppOptions>();
 const QUICK_AMOUNTS = [1, 5, 10] as const;
@@ -21,6 +25,9 @@ const MAXIMUM_AMOUNT_YUAN = 200;
 const ORDER_POLL_DELAYS = [0, 800, 1200, 1800, 2400] as const;
 const PENDING_ORDER_MAXIMUM_AGE = 24 * 60 * 60 * 1000;
 const PENDING_ORDER_STORAGE_KEY = 'pendingTipOrder';
+const DEFAULT_PENDING_MESSAGE =
+  '微信可能需要一点时间同步结果，你可以稍后重新查询。';
+const PENDING_EXPIRED_MESSAGE = '本地查询记录已过期，请先核对微信账单再赞赏';
 let paymentFlowVersion = 0;
 
 interface StoredPendingOrder {
@@ -72,15 +79,17 @@ const createClientRequestId = (): string => {
   return `tip-${timestamp}-${random}`;
 };
 
-const savePendingOrder = (orderNo: string): void => {
+const savePendingOrder = (orderNo: string): number => {
+  const savedAt = Date.now();
   try {
     wx.setStorageSync(PENDING_ORDER_STORAGE_KEY, {
       orderNo,
-      savedAt: Date.now()
+      savedAt
     } as StoredPendingOrder);
   } catch {
     throw new Error('无法保存支付记录，请稍后重试');
   }
+  return savedAt;
 };
 
 const clearPendingOrder = (): void => {
@@ -107,12 +116,37 @@ const getPendingOrder = (): StoredPendingOrder | undefined => {
     !/^[A-Za-z0-9|*@-]{8,32}$/u.test(orderNo) ||
     typeof savedAt !== 'number' ||
     !Number.isSafeInteger(savedAt) ||
-    Date.now() - savedAt > PENDING_ORDER_MAXIMUM_AGE
+    savedAt <= 0 ||
+    savedAt > Date.now()
   ) {
     clearPendingOrder();
     return undefined;
   }
   return { orderNo, savedAt };
+};
+
+const reportPaymentFailure = (
+  stage: 'create' | 'pay' | 'query',
+  error: unknown,
+  orderNo?: string
+): void => {
+  try {
+    if (typeof wx.getRealtimeLogManager !== 'function') {
+      return;
+    }
+    wx.getRealtimeLogManager().warn('tip_payment_failure', {
+      stage,
+      orderNo,
+      code:
+        error instanceof VirtualPaymentError
+          ? Number.isSafeInteger(error.errCode)
+            ? error.errCode
+            : error.reason
+          : (ajax.getErrorCode(error) ?? 'REQUEST_FAILED')
+    });
+  } catch {
+    // 诊断日志不可影响支付与订单恢复。
+  }
 };
 
 const getVirtualPaymentErrorText = (error: VirtualPaymentError): string => {
@@ -159,6 +193,9 @@ const getApiErrorText = (error: unknown): string => {
   if (ajax.isApiError(error, undefined, 'TIP_AMOUNT_INVALID')) {
     return '请选择 1 至 200 元的整数金额';
   }
+  if (ajax.isApiError(error, undefined, 'TIP_ORDER_ENVIRONMENT_MISMATCH')) {
+    return '支付环境已变化，请重新发起赞赏';
+  }
   if (
     ajax.isApiError(error, undefined, 'WECHAT_LOGIN_INVALID') ||
     ajax.isApiError(error, undefined, 'WECHAT_ACCOUNT_MISMATCH')
@@ -175,6 +212,8 @@ Page({
     amountInput: '5',
     isPaying: false,
     lastOrderNo: '',
+    pendingSavedAt: 0,
+    pendingMessage: DEFAULT_PENDING_MESSAGE,
     paymentState: 'idle' as PaymentState,
     quickAmounts: QUICK_AMOUNTS,
     selectedAmount: 5
@@ -183,9 +222,15 @@ Page({
   onLoad() {
     const pendingOrder = getPendingOrder();
     if (pendingOrder) {
+      if (Date.now() - pendingOrder.savedAt > PENDING_ORDER_MAXIMUM_AGE) {
+        clearPendingOrder();
+        messageBox.toast(PENDING_EXPIRED_MESSAGE);
+        return;
+      }
       this.setData({
         actionLabel: '重新查询支付结果',
         lastOrderNo: pendingOrder.orderNo,
+        pendingSavedAt: pendingOrder.savedAt,
         paymentState: 'pending'
       });
     }
@@ -203,6 +248,10 @@ Page({
 
   onUnload() {
     paymentFlowVersion += 1;
+  },
+
+  leavePendingOrder() {
+    wx.navigateBack({ fail: () => wx.switchTab({ url: '/pages/mine/mine' }) });
   },
 
   selectQuickAmount(
@@ -343,6 +392,7 @@ Page({
         }
         return;
       }
+      reportPaymentFailure('create', error);
       messageBox.toast(
         error instanceof VirtualPaymentError
           ? getVirtualPaymentErrorText(error)
@@ -365,12 +415,22 @@ Page({
     if (flowVersion !== paymentFlowVersion) {
       return order;
     }
-    savePendingOrder(order.orderNo);
-    this.setData({ lastOrderNo: order.orderNo, paymentState: 'pending' });
+    const savedAt = savePendingOrder(order.orderNo);
+    this.setData({
+      lastOrderNo: order.orderNo,
+      pendingSavedAt: savedAt,
+      pendingMessage: DEFAULT_PENDING_MESSAGE,
+      paymentState: 'pending'
+    });
     try {
       await requestVirtualPayment(order.payment);
       return order;
     } catch (error) {
+      if (!(
+        error instanceof VirtualPaymentError && error.reason === 'cancelled'
+      )) {
+        reportPaymentFailure('pay', error, order.orderNo);
+      }
       if (
         flowVersion === paymentFlowVersion &&
         canRetryPaymentSession &&
@@ -403,7 +463,8 @@ Page({
         {
           retryUnauthorized: false,
           showError: false,
-          showLoading: false
+          showLoading: false,
+          timeout: 10000
         }
       );
       return data;
@@ -419,37 +480,90 @@ Page({
   async _pollOrder(
     orderNo: string,
     flowVersion: number
-  ): Promise<TipOrderStatus> {
+  ): Promise<OrderQueryResult> {
     let lastStatus: TipOrderStatus = 'pending';
     for (const delay of ORDER_POLL_DELAYS) {
       if (flowVersion !== paymentFlowVersion) {
-        return lastStatus;
+        return { status: lastStatus };
       }
       if (delay > 0) {
         await wait(delay);
       }
       if (flowVersion !== paymentFlowVersion) {
-        return lastStatus;
+        return { status: lastStatus };
       }
       try {
+        if (app.globalData.loginStatus !== 'ready') {
+          await app.doLogin();
+        }
+        if (flowVersion !== paymentFlowVersion) {
+          return { status: lastStatus };
+        }
         const { data } = await ajax.get<TipOrderResponse>(
           `/tips/orders/${encodeURIComponent(orderNo)}`,
-          { showError: false, showLoading: false }
+          { showError: false, showLoading: false, timeout: 8000 }
         );
+        if (!['pending', 'paid', 'refunded', 'closed'].includes(data?.status)) {
+          throw new Error('订单查询响应不正确');
+        }
         lastStatus = data.status;
         if (lastStatus !== 'pending') {
-          return lastStatus;
+          return { status: lastStatus };
         }
-      } catch {
-        // 短时网络错误继续轮询，最终统一进入待确认状态。
+      } catch (error) {
+        reportPaymentFailure('query', error, orderNo);
+        if (ajax.isApiError(error, 404)) {
+          return {
+            status: 'unavailable',
+            message: '该订单不存在或不属于当前微信账号'
+          };
+        }
+        if (
+          ajax.isApiError(error, undefined, 'TIP_ORDER_ENVIRONMENT_MISMATCH')
+        ) {
+          return {
+            status: 'unavailable',
+            message: '支付环境已变化，已退出旧订单查询'
+          };
+        }
+        if (
+          ajax.isApiError(error, 401) ||
+          ajax.isApiError(error, 403) ||
+          app.globalData.loginStatus !== 'ready'
+        ) {
+          return {
+            status: 'pending',
+            message: '登录状态暂不可用，请重新进入小程序后查询。'
+          };
+        }
+        if (ajax.isApiError(error, undefined, 'REQUEST_TIMEOUT')) {
+          return {
+            status: 'pending',
+            message: '查询超时，支付结果仍待确认，请稍后再查。'
+          };
+        }
+        return {
+          status: 'pending',
+          message: '暂时无法查询支付结果，请稍后再查，避免重复付款。'
+        };
       }
     }
-    return lastStatus;
+    return { status: lastStatus };
   },
 
   async _refreshPendingOrder() {
     const orderNo = this.data.lastOrderNo;
     if (!orderNo || this.data.isPaying) {
+      return;
+    }
+    if (
+      this.data.pendingSavedAt &&
+      Date.now() - this.data.pendingSavedAt > PENDING_ORDER_MAXIMUM_AGE
+    ) {
+      this._applyOrderStatus(
+        { status: 'unavailable', message: PENDING_EXPIRED_MESSAGE },
+        orderNo
+      );
       return;
     }
     const flowVersion = ++paymentFlowVersion;
@@ -466,7 +580,14 @@ Page({
     }
   },
 
-  _applyOrderStatus(status: TipOrderStatus, orderNo: string) {
+  _applyOrderStatus(result: OrderQueryResult, orderNo: string) {
+    const { status } = result;
+    if (status === 'unavailable') {
+      clearPendingOrder();
+      this._restoreIdleAction();
+      messageBox.toast(result.message ?? '该订单暂不可查询');
+      return;
+    }
     if (status === 'paid') {
       clearPendingOrder();
       wx.vibrateShort({ type: 'light' });
@@ -481,6 +602,7 @@ Page({
       this.setData({
         actionLabel: '重新查询支付结果',
         lastOrderNo: orderNo,
+        pendingMessage: result.message ?? DEFAULT_PENDING_MESSAGE,
         paymentState: 'pending'
       });
       return;
@@ -502,6 +624,8 @@ Page({
           ? `确认赞赏 ¥${amount}`
           : '请输入赞赏金额',
       lastOrderNo: '',
+      pendingSavedAt: 0,
+      pendingMessage: DEFAULT_PENDING_MESSAGE,
       paymentState: 'idle'
     });
   }

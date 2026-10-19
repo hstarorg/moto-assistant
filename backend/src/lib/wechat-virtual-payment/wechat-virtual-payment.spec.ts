@@ -250,6 +250,128 @@ describe('WechatVirtualPayment', () => {
     });
   });
 
+  it.each([40001, 40014, 42001])(
+    'refreshes token code %s once and resends the same delivery request',
+    async (errcode) => {
+      const fetchMock = jest
+        .fn()
+        .mockImplementationOnce(() =>
+          Promise.resolve(new Response(JSON.stringify({ errcode }))),
+        )
+        .mockImplementationOnce(() =>
+          Promise.resolve(new Response(JSON.stringify({ errcode: 0 }))),
+        );
+      const refreshAccessToken = jest.fn().mockResolvedValue('new-token');
+      const client = new WechatVirtualPayment(config, {
+        fetch: fetchMock as typeof fetch,
+        getAccessToken: jest.fn().mockResolvedValue('old-token'),
+        refreshAccessToken,
+      });
+      await client.notifyProvideGoods('MA1234567890ABCDEF');
+      expect(refreshAccessToken).toHaveBeenCalledWith('old-token');
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      const [firstUrl, firstRequest] = fetchMock.mock.calls[0] as [
+        URL,
+        RequestInit,
+      ];
+      const [secondUrl, secondRequest] = fetchMock.mock.calls[1] as [
+        URL,
+        RequestInit,
+      ];
+      expect(firstUrl.searchParams.get('access_token')).toBe('old-token');
+      expect(secondUrl.searchParams.get('access_token')).toBe('new-token');
+      expect(secondRequest.body).toBe(firstRequest.body);
+    },
+  );
+
+  it('stops after one unsuccessful refresh without leaking an upstream message', async () => {
+    const fetchMock = jest
+      .fn()
+      .mockImplementation(() =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify({ errcode: 42001, errmsg: 'private-upstream-data' }),
+          ),
+        ),
+      );
+    const refreshAccessToken = jest.fn().mockResolvedValue('new-token');
+    const client = new WechatVirtualPayment(config, {
+      fetch: fetchMock as typeof fetch,
+      getAccessToken: jest.fn().mockResolvedValue('old-token'),
+      refreshAccessToken,
+    });
+    await expect(
+      client.notifyProvideGoods('MA1234567890ABCDEF'),
+    ).rejects.toMatchObject({
+      code: WechatVirtualPaymentErrorCode.ACCESS_TOKEN_INVALID,
+      upstreamCode: 42001,
+      message: '',
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(refreshAccessToken).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not refresh or retry unrelated business errors', async () => {
+    const fetchMock = jest
+      .fn()
+      .mockResolvedValue(new Response(JSON.stringify({ errcode: -1 })));
+    const refreshAccessToken = jest.fn();
+    const client = new WechatVirtualPayment(config, {
+      fetch: fetchMock as typeof fetch,
+      getAccessToken: jest.fn().mockResolvedValue('access-token'),
+      refreshAccessToken,
+    });
+    await expect(
+      client.notifyProvideGoods('MA1234567890ABCDEF'),
+    ).rejects.toMatchObject({
+      code: WechatVirtualPaymentErrorCode.PROVIDE_FAILED,
+      upstreamCode: -1,
+    });
+    expect(refreshAccessToken).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('fails once when the optional token refresh callback is absent', async () => {
+    const fetchMock = jest
+      .fn()
+      .mockResolvedValue(new Response(JSON.stringify({ errcode: 42001 })));
+    const client = new WechatVirtualPayment(config, {
+      fetch: fetchMock as typeof fetch,
+      getAccessToken: jest.fn().mockResolvedValue('old-token'),
+    });
+    await expect(
+      client.notifyProvideGoods('MA1234567890ABCDEF'),
+    ).rejects.toMatchObject({
+      code: WechatVirtualPaymentErrorCode.ACCESS_TOKEN_INVALID,
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports timeouts with a stable code and does not retry a possibly executed request', async () => {
+    const timeout = jest
+      .spyOn(AbortSignal, 'timeout')
+      .mockReturnValue(AbortSignal.abort());
+    const fetchMock = jest
+      .fn()
+      .mockRejectedValue(new Error('private-network-data'));
+    const client = new WechatVirtualPayment(config, {
+      fetch: fetchMock as typeof fetch,
+      getAccessToken: jest.fn().mockResolvedValue('access-token'),
+    });
+    try {
+      await expect(
+        client.notifyProvideGoods('MA1234567890ABCDEF'),
+      ).rejects.toMatchObject({
+        code: WechatVirtualPaymentErrorCode.REQUEST_TIMEOUT,
+        message: '',
+      });
+      expect(timeout).toHaveBeenCalledWith(5000);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    } finally {
+      timeout.mockRestore();
+    }
+  });
+
   it('decrypts a safe-mode message and validates its embedded AppID', () => {
     const timestamp = '1700000000';
     const nonce = 'nonce-2';

@@ -96,6 +96,25 @@ https://<API域名>/api/v1/wechat/messages
 该任务不新增配置项；多实例可能重复查询或确认，状态更新由事务行锁保护，并以微信侧
 订单状态为准。订单量超过单批上限时，一轮完整扫描会跨越多个调度周期。
 
+订单重新签名、查单、退款查询和发货确认均校验订单环境。历史订单与当前配置不一致时，
+返回 HTTP 409 和 `TIP_ORDER_ENVIRONMENT_MISMATCH`，不会使用当前 AppKey 操作旧环境订单。
+当前配置仍只保存一套环境密钥，切换环境后的旧订单需在原环境处理。
+
+微信登录、token 请求和虚拟支付 HTTP 请求（含响应体）均设置 5 秒超时。token 提前被微信
+拒绝时，只清除匹配的旧缓存并刷新重试一次；同进程的并发请求复用刷新结果。
+排障日志使用 `wechat_virtual_payment_failure` / `wechat_request_failure` 事件，记录操作名、
+业务订单号（如有）、稳定错误码及微信数值错误码，不记录密钥、token、签名、URL 或微信 errmsg。
+
+查询类接口错误码：
+
+| 错误码 | HTTP | 含义 |
+| --- | --- | --- |
+| `TIP_ORDER_NOT_FOUND` | 404 | 订单不存在或不属于当前用户，两种情况统一应答 |
+| `TIP_ORDER_ENVIRONMENT_MISMATCH` | 409 | 订单环境与当前配置不一致 |
+| `TIP_ORDER_QUERY_FAILED` | 503 | 微信查单暂不可用 |
+| `TIP_REFUND_QUERY_FAILED` | 503 | 微信退款查询暂不可用 |
+| `TIP_DELIVERY_CONFIRM_FAILED` | 503 | 发货确认暂不可用，补偿任务继续重试 |
+
 微信个人主体虚拟支付协议封装位于 `src/lib/wechat-virtual-payment`，不依赖 NestJS 或数据库。业务层
 只负责读取配置、提供微信 `access_token` 和持久化订单，后续其他服务端应用可直接复用
 该协议客户端。

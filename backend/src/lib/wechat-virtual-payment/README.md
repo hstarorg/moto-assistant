@@ -27,6 +27,8 @@ const client = new WechatVirtualPayment(
   },
   {
     getAccessToken: async () => getWechatAccessToken(),
+    // 可选：传回被拒绝的旧 token，由应用层使匹配的缓存失效并合并并发刷新。
+    refreshAccessToken: async rejectedToken => getWechatAccessToken(rejectedToken),
     // fetch 可选，默认使用 globalThis.fetch。
     fetch,
   },
@@ -40,6 +42,12 @@ const client = new WechatVirtualPayment(
 
 `getAccessToken` 由接入应用实现，客户端不会读取应用配置、缓存或持久化
 `access_token`。调用方也可以注入 `fetch`，用于设置代理、超时策略或测试替身。
+
+提供可选的 `refreshAccessToken(rejectedToken)` 后，微信返回 40001、40014、42001 时，
+SDK 刷新一次 token 并用完全相同的请求体重试一次。再次失败则抛出 `ACCESS_TOKEN_INVALID`；
+未提供刷新回调时直接抛出该错误。其他业务错误和超时不会自动重发。
+应用层应只使与 `rejectedToken` 相同的缓存失效：若已有更新的 token，复用新值；同一进程
+的并发刷新应共用一个进行中的请求。SDK 不持久化任何 token，也不提供分布式缓存。
 
 ## `messageToken` 和 `encodingAesKey` 从哪里来
 
@@ -104,6 +112,8 @@ SDK 校验退款单号、环境、订单类型（1：普通退款，8：Apple �
 仅在主动查单确认付款且本地业务事务提交后调用。该接口按官方协议只携带 access_token，
 不添加 pay_sig。正常发货推送已成功应答时无需额外调用；推送丢失或确认失败时用于补偿。
 查询到状态 4（已发货）后不再发送确认。微信网络请求设置 5 秒超时，失败由调用方重试。
+该超时覆盖 HTTP 请求与响应体读取；自定义 `getAccessToken` / `refreshAccessToken` 回调
+应由接入应用保证有界。本项目的微信登录和 token HTTP 请求同样设置 5 秒超时。
 
 ### `verifyUrlSignature(signature, timestamp, nonce)`
 
@@ -143,9 +153,15 @@ try {
 属于 SDK 公共接口，由各应用按产品语境和语言自行维护。后续版本可能增加新的错误码，
 调用方应为未知错误保留兜底逻辑。
 
+微信返回可解析的数值错误码时，错误还携带可选的 `upstreamCode`，仅用于服务端诊断。
+SDK 不保存微信原始 errmsg、请求 URL、签名或密钥；面向用户的接口仍只返回应用层错误码
+与文案。应用层应记录操作名、业务订单号、SDK code 和 upstreamCode，不记录完整 Error 或报文。
+
 | 枚举成员                    | `error.code`                    | 含义                         |
 | --------------------------- | ------------------------------- | ---------------------------- |
 | `ACCESS_TOKEN_FAILED`       | `WVP_ACCESS_TOKEN_FAILED`       | 获取微信 access_token 失败   |
+| `ACCESS_TOKEN_INVALID`      | `WVP_ACCESS_TOKEN_INVALID`      | token 被拒绝且未配置刷新或一次刷新后仍失效 |
+| `REQUEST_TIMEOUT`           | `WVP_REQUEST_TIMEOUT`           | 微信 HTTP 请求或响应体读取超时 |
 | `INVALID_ENCODING_AES_KEY`  | `WVP_INVALID_ENCODING_AES_KEY`  | EncodingAESKey 格式不正确    |
 | `QUERY_REQUEST_FAILED`      | `WVP_QUERY_REQUEST_FAILED`      | 查单网络请求失败             |
 | `QUERY_RESPONSE_INVALID`    | `WVP_QUERY_RESPONSE_INVALID`    | 查单响应无法解析             |

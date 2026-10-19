@@ -19,6 +19,7 @@ function setup() {
   const storage = new Map();
   const events = [];
   const notifications = [];
+  const diagnostics = [];
   const payment = deferred();
   const created = {
     orderNo: 'MA12345678',
@@ -31,6 +32,15 @@ function setup() {
     }
   };
   const wx = {
+    getRealtimeLogManager() {
+      return { warn: (event, value) => diagnostics.push({ event, value }) };
+    },
+    navigateBack() {
+      events.push('leave');
+    },
+    switchTab() {
+      events.push('mine');
+    },
     login({ success }) {
       success({ code: 'login-code' });
     },
@@ -49,13 +59,30 @@ function setup() {
     },
     vibrateShort() {}
   };
+  class ApiError extends Error {
+    constructor(statusCode, code) {
+      super('private-response');
+      this.statusCode = statusCode;
+      this.code = code;
+    }
+  }
   const ajax = {
     post: async () => {
       events.push('created');
       return { data: created };
     },
     get: async () => ({ data: { status: 'pending' } }),
-    isApiError: () => false
+    isApiError: (error, statusCode, code) =>
+      error instanceof ApiError &&
+      (statusCode === undefined || error.statusCode === statusCode) &&
+      (code === undefined || error.code === code),
+    getErrorCode: error => (error instanceof ApiError ? error.code : undefined)
+  };
+  const app = {
+    globalData: { loginStatus: 'ready' },
+    async doLogin() {
+      app.globalData.loginStatus = 'ready';
+    }
   };
   class VirtualPaymentError extends Error {
     constructor(reason, errCode) {
@@ -95,7 +122,7 @@ function setup() {
     Page: value => {
       options = value;
     },
-    getApp: () => ({ globalData: { loginStatus: 'ready' } }),
+    getApp: () => app,
     setTimeout: callback => {
       callback();
       return 0;
@@ -128,7 +155,10 @@ function setup() {
     created,
     virtual,
     VirtualPaymentError,
-    notifications
+    notifications,
+    diagnostics,
+    ApiError,
+    app
   };
 }
 
@@ -271,4 +301,132 @@ test('does not use a previous successful order if starting the next payment fail
   await page.handlePrimaryAction();
   assert.equal(queries, 0);
   assert.equal(page.data.paymentState, 'idle');
+});
+
+function pendingPage(f) {
+  f.storage.set('pendingTipOrder', {
+    orderNo: f.created.orderNo,
+    savedAt: Date.now()
+  });
+  const page = f.page();
+  page.onLoad();
+  return page;
+}
+
+test('waits for login and clears inaccessible pending records after an account switch', async () => {
+  const f = setup();
+  const page = pendingPage(f);
+  f.app.globalData.loginStatus = 'loggingIn';
+  let queries = 0;
+  f.ajax.get = async () => {
+    assert.equal(f.app.globalData.loginStatus, 'ready');
+    queries += 1;
+    throw new f.ApiError(404, 'TIP_ORDER_NOT_FOUND');
+  };
+  await page._refreshPendingOrder();
+  assert.equal(page.data.paymentState, 'idle');
+  assert.equal(page.data.isPaying, false);
+  assert.equal(f.storage.has('pendingTipOrder'), false);
+  assert.equal(queries, 1);
+});
+
+test('leaves an old-environment pending record without claiming the payment failed', async () => {
+  const f = setup();
+  const page = pendingPage(f);
+  f.ajax.get = async () => {
+    throw new f.ApiError(409, 'TIP_ORDER_ENVIRONMENT_MISMATCH');
+  };
+  await page._refreshPendingOrder();
+  assert.equal(page.data.paymentState, 'idle');
+  assert.equal(f.storage.has('pendingTipOrder'), false);
+  assert.ok(f.notifications.some(value => value.includes('支付环境已变化')));
+});
+
+test('keeps uncertain orders with a retry message and an unchanged expiration time', async () => {
+  const f = setup();
+  const page = pendingPage(f);
+  const savedAt = f.storage.get('pendingTipOrder').savedAt;
+  let queries = 0;
+  f.ajax.get = async (_path, options) => {
+    assert.equal(options.timeout, 8000);
+    queries += 1;
+    throw new f.ApiError(503, 'TIP_ORDER_QUERY_FAILED');
+  };
+  await page._refreshPendingOrder();
+  assert.equal(page.data.isPaying, false);
+  assert.equal(page.data.paymentState, 'pending');
+  assert.ok(page.data.pendingMessage.includes('避免重复付款'));
+  assert.equal(queries, 1);
+  assert.equal(f.storage.get('pendingTipOrder').savedAt, savedAt);
+  page.leavePendingOrder();
+  assert.ok(f.events.includes('leave'));
+  assert.ok(f.storage.has('pendingTipOrder'));
+});
+
+test('keeps pending orders when authorization cannot be recovered', async () => {
+  const f = setup();
+  const page = pendingPage(f);
+  f.app.globalData.loginStatus = 'failed';
+  f.app.doLogin = async () => {
+    throw new f.ApiError(401);
+  };
+  await page._refreshPendingOrder();
+  assert.equal(page.data.paymentState, 'pending');
+  assert.ok(page.data.pendingMessage.includes('登录状态'));
+  assert.ok(f.storage.has('pendingTipOrder'));
+});
+
+test('releases records that expire while the page stays open and reminds the user to check the bill', async () => {
+  const f = setup();
+  const page = pendingPage(f);
+  page.data.pendingSavedAt = Date.now() - 24 * 60 * 60 * 1000 - 1;
+  await page._refreshPendingOrder();
+  assert.equal(page.data.paymentState, 'idle');
+  assert.equal(f.storage.has('pendingTipOrder'), false);
+  assert.ok(f.notifications.some(value => value.includes('核对微信账单')));
+});
+
+test('records the actual WeChat failure code without payment signatures or raw error messages', async () => {
+  const f = setup();
+  const page = f.page();
+  const flow = page.handlePrimaryAction();
+  await untilPayment(f);
+  const error = new f.VirtualPaymentError('failed', -15010);
+  error.message = 'private-error-with-signature';
+  f.payment.reject(error);
+  await flow;
+  assert.equal(f.diagnostics.length, 1);
+  assert.equal(f.diagnostics[0].value.code, -15010);
+  assert.equal(f.diagnostics[0].value.orderNo, f.created.orderNo);
+  const text = JSON.stringify(f.diagnostics);
+  assert.equal(text.includes('signature'), false);
+  assert.equal(text.includes('paySig'), false);
+  assert.equal(text.includes('private-error'), false);
+});
+
+test('diagnostic logger failures cannot interrupt order recovery', async () => {
+  const f = setup();
+  f.wx.getRealtimeLogManager = () => {
+    throw new Error('logging unavailable');
+  };
+  const page = pendingPage(f);
+  f.ajax.get = async () => {
+    throw new f.ApiError(404);
+  };
+  await page._refreshPendingOrder();
+  assert.equal(page.data.isPaying, false);
+  assert.equal(page.data.paymentState, 'idle');
+});
+
+test('warns about an expired record when reopening the page', () => {
+  const f = setup();
+  f.storage.set('pendingTipOrder', {
+    orderNo: f.created.orderNo,
+    savedAt: Date.now() - 24 * 60 * 60 * 1000 - 1
+  });
+  const page = f.page();
+  page.onLoad();
+  assert.equal(page.data.paymentState, 'idle');
+  assert.equal(f.storage.has('pendingTipOrder'), false);
+  assert.ok(f.notifications.some(value => value.includes('核对微信账单')));
 });

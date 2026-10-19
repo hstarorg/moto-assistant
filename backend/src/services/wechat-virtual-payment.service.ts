@@ -1,6 +1,8 @@
 import {
+  ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -19,6 +21,7 @@ export const TIP_UNIT_PRICE_CENTS = 100;
 
 @Injectable()
 export class WechatVirtualPaymentService {
+  private readonly logger = new Logger(WechatVirtualPaymentService.name);
   private readonly client?: WechatVirtualPayment;
   private readonly environment: 0 | 1;
 
@@ -31,6 +34,8 @@ export class WechatVirtualPaymentService {
     if (paymentConfig) {
       this.client = new WechatVirtualPayment(paymentConfig, {
         getAccessToken: () => this.thirdParty.getWechatAccessToken(),
+        refreshAccessToken: (rejectedToken) =>
+          this.thirdParty.getWechatAccessToken(rejectedToken),
       });
     }
   }
@@ -48,7 +53,7 @@ export class WechatVirtualPaymentService {
     order: TipOrderEntity,
     sessionKey: string,
   ): TipPaymentParameters {
-    return this.getClient().createPaymentParameters({
+    return this.getOrderClient(order).createPaymentParameters({
       outTradeNo: order.outTradeNo,
       productId: order.productId,
       quantity: order.quantity,
@@ -74,14 +79,19 @@ export class WechatVirtualPaymentService {
   }
 
   async queryOrder(order: TipOrderEntity): Promise<WechatVirtualPaymentOrder> {
+    const client = this.getOrderClient(order);
     try {
-      return await this.getOrderClient(order).queryOrder({
+      return await client.queryOrder({
         openId: order.payerOpenId,
         orderId: order.outTradeNo,
         totalAmount: order.totalAmount,
       });
-    } catch {
-      throw new ServiceUnavailableException('微信订单查询暂时不可用');
+    } catch (error) {
+      this.logFailure('query_order', error, order.outTradeNo);
+      throw new ServiceUnavailableException({
+        code: 'TIP_ORDER_QUERY_FAILED',
+        message: '微信订单查询暂时不可用',
+      });
     }
   }
 
@@ -89,22 +99,32 @@ export class WechatVirtualPaymentService {
     order: TipOrderEntity,
     identifiers: { orderId?: string; wxOrderId?: string },
   ): Promise<WechatVirtualPaymentOrder> {
+    const client = this.getOrderClient(order);
     try {
-      return await this.getOrderClient(order).queryRefundOrder({
+      return await client.queryRefundOrder({
         ...identifiers,
         openId: order.payerOpenId,
         totalAmount: order.totalAmount,
       });
-    } catch {
-      throw new ServiceUnavailableException('微信退款查询暂时不可用');
+    } catch (error) {
+      this.logFailure('query_refund_order', error, order.outTradeNo);
+      throw new ServiceUnavailableException({
+        code: 'TIP_REFUND_QUERY_FAILED',
+        message: '微信退款查询暂时不可用',
+      });
     }
   }
 
   async notifyProvideGoods(order: TipOrderEntity): Promise<void> {
+    const client = this.getOrderClient(order);
     try {
-      await this.getOrderClient(order).notifyProvideGoods(order.outTradeNo);
-    } catch {
-      throw new ServiceUnavailableException('微信发货确认暂时不可用');
+      await client.notifyProvideGoods(order.outTradeNo);
+    } catch (error) {
+      this.logFailure('notify_provide_goods', error, order.outTradeNo);
+      throw new ServiceUnavailableException({
+        code: 'TIP_DELIVERY_CONFIRM_FAILED',
+        message: '微信发货确认暂时不可用',
+      });
     }
   }
 
@@ -116,6 +136,7 @@ export class WechatVirtualPaymentService {
     try {
       this.getClient().verifyUrlSignature(signature, timestamp, nonce);
     } catch (error) {
+      this.logFailure('verify_url', error);
       if (error instanceof WechatVirtualPaymentError) {
         throw new ForbiddenException('微信消息认证失败');
       }
@@ -137,6 +158,7 @@ export class WechatVirtualPaymentService {
         nonce,
       );
     } catch (error) {
+      this.logFailure('decrypt_message', error);
       if (error instanceof WechatVirtualPaymentError) {
         throw new ForbiddenException('微信消息认证失败');
       }
@@ -152,9 +174,42 @@ export class WechatVirtualPaymentService {
   private getOrderClient(order: TipOrderEntity): WechatVirtualPayment {
     const client = this.getClient();
     if (order.environment !== this.environment) {
-      throw new ServiceUnavailableException('微信订单环境不匹配');
+      this.logger.warn(
+        JSON.stringify({
+          event: 'wechat_virtual_payment_failure',
+          operation: 'environment_check',
+          orderNo: order.outTradeNo,
+          code: 'TIP_ORDER_ENVIRONMENT_MISMATCH',
+        }),
+      );
+      throw new ConflictException({
+        code: 'TIP_ORDER_ENVIRONMENT_MISMATCH',
+        message: '该订单不属于当前支付环境，请重新发起',
+      });
     }
     return client;
+  }
+
+  private logFailure(
+    operation: string,
+    error: unknown,
+    orderNo?: string,
+  ): void {
+    this.logger.warn(
+      JSON.stringify({
+        event: 'wechat_virtual_payment_failure',
+        operation,
+        orderNo,
+        code:
+          error instanceof WechatVirtualPaymentError
+            ? error.code
+            : 'UNEXPECTED_ERROR',
+        upstreamCode:
+          error instanceof WechatVirtualPaymentError
+            ? error.upstreamCode
+            : undefined,
+      }),
+    );
   }
 
   private parseConfig(

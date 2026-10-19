@@ -1,10 +1,11 @@
-import { ServiceUnavailableException } from '@nestjs/common';
+import { Logger, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { TipOrderEntity } from '../database';
 import type { ThirdPartyService } from './third-party.service';
 import { WechatVirtualPaymentService } from './wechat-virtual-payment.service';
 
 describe('WechatVirtualPaymentService', () => {
+  let warnings: jest.SpyInstance;
   const encodingAesKey = Buffer.from('0123456789abcdef0123456789abcdef')
     .toString('base64')
     .replace(/=$/u, '');
@@ -29,6 +30,15 @@ describe('WechatVirtualPaymentService', () => {
       }),
       thirdParty as unknown as ThirdPartyService,
     );
+
+  beforeEach(() => {
+    thirdParty.getWechatAccessToken
+      .mockReset()
+      .mockResolvedValue('access-token');
+    warnings = jest
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined);
+  });
 
   afterEach(() => {
     jest.restoreAllMocks();
@@ -108,6 +118,69 @@ describe('WechatVirtualPaymentService', () => {
     expect(() => service.createPaymentParameters(order, 'session-key')).toThrow(
       ServiceUnavailableException,
     );
+  });
+
+  it('rejects old-environment orders for signing, queries and delivery without calling WeChat', async () => {
+    const fetchMock = jest.spyOn(global, 'fetch');
+    const service = createService();
+    const oldOrder = { ...order, environment: 1 };
+    expect(() =>
+      service.createPaymentParameters(oldOrder, 'session-key'),
+    ).toThrow('该订单不属于当前支付环境，请重新发起');
+    for (const promise of [
+      service.queryOrder(oldOrder),
+      service.queryRefundOrder(oldOrder, { orderId: 'REFUND12345678' }),
+      service.notifyProvideGoods(oldOrder),
+    ]) {
+      await expect(promise).rejects.toMatchObject({
+        response: { code: 'TIP_ORDER_ENVIRONMENT_MISMATCH' },
+      });
+    }
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(thirdParty.getWechatAccessToken).not.toHaveBeenCalled();
+  });
+
+  it('refreshes a rejected token once and logs only numeric or stable error codes', async () => {
+    const fetchMock = jest
+      .spyOn(global, 'fetch')
+      .mockImplementationOnce(() =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify({ errcode: 42001, errmsg: 'secret-token' }),
+          ),
+        ),
+      )
+      .mockImplementationOnce(() =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify({ errcode: 40001, errmsg: 'secret-key' }),
+          ),
+        ),
+      );
+    thirdParty.getWechatAccessToken
+      .mockResolvedValueOnce('old-token')
+      .mockResolvedValueOnce('new-token');
+    await expect(createService().queryOrder(order)).rejects.toMatchObject({
+      response: { code: 'TIP_ORDER_QUERY_FAILED' },
+    });
+    expect(thirdParty.getWechatAccessToken).toHaveBeenNthCalledWith(
+      2,
+      'old-token',
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(warnings).toHaveBeenCalledWith(
+      JSON.stringify({
+        event: 'wechat_virtual_payment_failure',
+        operation: 'query_order',
+        orderNo: order.outTradeNo,
+        code: 'WVP_ACCESS_TOKEN_INVALID',
+        upstreamCode: 40001,
+      }),
+    );
+    const logged = JSON.stringify(warnings.mock.calls);
+    expect(logged).not.toContain('secret-');
+    expect(logged).not.toContain('old-token');
+    expect(logged).not.toContain('new-token');
   });
 
   it('rejects a sandbox configuration in production', () => {

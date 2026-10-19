@@ -67,7 +67,8 @@
         <view class="status-indicator" aria-hidden="true"></view>
         <view class="status-content">
           <text class="status-title">支付结果正在确认</text>
-          <text class="status-description">微信可能需要一点时间同步结果，你可以稍后重新查询。</text>
+          <text class="status-description">{{pendingMessage}}</text>
+          <button class="pending-back" bindtap="leavePendingOrder">稍后查询</button>
         </view>
       </view>
 

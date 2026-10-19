@@ -19,6 +19,7 @@ export interface WechatVirtualPaymentConfig {
 export interface WechatVirtualPaymentDependencies {
   fetch?: typeof globalThis.fetch;
   getAccessToken: () => Promise<string>;
+  refreshAccessToken?: (rejectedToken: string) => Promise<string>;
 }
 
 export interface WechatVirtualPaymentInput {
@@ -229,6 +230,51 @@ export class WechatVirtualPayment {
         WechatVirtualPaymentErrorCode.ACCESS_TOKEN_FAILED,
       );
     }
+    for (let attempt = 0; ; attempt += 1) {
+      const result = await this.send(
+        path,
+        requestBody,
+        accessToken,
+        codes,
+        signed,
+      );
+      const upstreamCode = Number.isSafeInteger(result.errcode)
+        ? (result.errcode as number)
+        : undefined;
+      if ([40001, 40014, 42001].includes(upstreamCode ?? 0)) {
+        if (attempt === 0 && this.dependencies.refreshAccessToken) {
+          try {
+            accessToken =
+              await this.dependencies.refreshAccessToken(accessToken);
+          } catch {
+            throw new WechatVirtualPaymentError(
+              WechatVirtualPaymentErrorCode.ACCESS_TOKEN_FAILED,
+            );
+          }
+          continue;
+        }
+        throw new WechatVirtualPaymentError(
+          WechatVirtualPaymentErrorCode.ACCESS_TOKEN_INVALID,
+          upstreamCode,
+        );
+      }
+      if (upstreamCode !== 0) {
+        throw new WechatVirtualPaymentError(codes.failed, upstreamCode);
+      }
+      return result;
+    }
+  }
+
+  private async send(
+    path: string,
+    requestBody: string,
+    accessToken: string,
+    codes: {
+      request: WechatVirtualPaymentErrorCode;
+      response: WechatVirtualPaymentErrorCode;
+    },
+    signed: boolean,
+  ): Promise<Record<string, unknown>> {
     const url = new URL(path, 'https://api.weixin.qq.com');
     url.search = new URLSearchParams({
       access_token: accessToken,
@@ -242,16 +288,21 @@ export class WechatVirtualPayment {
         : {}),
     }).toString();
 
+    const signal = AbortSignal.timeout(5000);
     let response: Response;
     try {
       response = await this.fetch(url, {
         body: requestBody,
         headers: { 'Content-Type': 'application/json' },
         method: 'POST',
-        signal: AbortSignal.timeout(5000),
+        signal,
       });
     } catch {
-      throw new WechatVirtualPaymentError(codes.request);
+      throw new WechatVirtualPaymentError(
+        signal.aborted
+          ? WechatVirtualPaymentErrorCode.REQUEST_TIMEOUT
+          : codes.request,
+      );
     }
     if (!response.ok) {
       throw new WechatVirtualPaymentError(codes.request);
@@ -261,7 +312,11 @@ export class WechatVirtualPayment {
     try {
       result = await response.json();
     } catch {
-      throw new WechatVirtualPaymentError(codes.response);
+      throw new WechatVirtualPaymentError(
+        signal.aborted
+          ? WechatVirtualPaymentErrorCode.REQUEST_TIMEOUT
+          : codes.response,
+      );
     }
     if (
       typeof result !== 'object' ||
@@ -269,9 +324,6 @@ export class WechatVirtualPayment {
       Array.isArray(result)
     ) {
       throw new WechatVirtualPaymentError(codes.response);
-    }
-    if ((result as Record<string, unknown>).errcode !== 0) {
-      throw new WechatVirtualPaymentError(codes.failed);
     }
     return result as Record<string, unknown>;
   }

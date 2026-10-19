@@ -405,6 +405,21 @@ describe('TipService synchronization and compensation', () => {
     expect(f.order.refundedAt).toBeUndefined();
   });
 
+  it('returns a stable not-found code without querying another user payment', async () => {
+    const f = fixture();
+    f.tipOrders.findOneBy.mockResolvedValue(null);
+    await expect(
+      f.service.findOrder(99, f.order.outTradeNo),
+    ).rejects.toMatchObject({
+      response: { code: 'TIP_ORDER_NOT_FOUND' },
+    });
+    expect(f.tipOrders.findOneBy).toHaveBeenCalledWith({
+      outTradeNo: f.order.outTradeNo,
+      userId: 99,
+    });
+    expect(f.payment.queryOrder).not.toHaveBeenCalled();
+  });
+
   it('requires the original payment balance to corroborate a full refund', async () => {
     const f = fixture();
     f.remote.status = 4;

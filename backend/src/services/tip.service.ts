@@ -133,14 +133,20 @@ export class TipService {
 
   async findOrder(userId: number, orderNo: string): Promise<TipOrderResponse> {
     if (!/^[A-Za-z0-9|*@-]{8,32}$/u.test(orderNo)) {
-      throw new NotFoundException('赞赏订单不存在');
+      throw new NotFoundException({
+        code: 'TIP_ORDER_NOT_FOUND',
+        message: '赞赏订单不存在',
+      });
     }
     const order = await this.tipOrders.findOneBy({
       outTradeNo: orderNo,
       userId,
     });
     if (!order) {
-      throw new NotFoundException('赞赏订单不存在');
+      throw new NotFoundException({
+        code: 'TIP_ORDER_NOT_FOUND',
+        message: '赞赏订单不存在',
+      });
     }
     return this.toResponse(await this.synchronizeOrder(order));
   }
