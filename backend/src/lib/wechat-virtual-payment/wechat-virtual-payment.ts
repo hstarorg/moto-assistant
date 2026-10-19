@@ -337,6 +337,11 @@ export class WechatVirtualPayment {
         WechatVirtualPaymentErrorCode.QUERY_FAILED,
       );
     }
+    const refundFee =
+      order.refund_fee === undefined &&
+      (order.order_type === 0 || order.order_type === 7)
+        ? 0
+        : order.refund_fee;
     if (
       order.env_type !== this.config.environment + 1 ||
       typeof order.order_id !== 'string' ||
@@ -349,9 +354,9 @@ export class WechatVirtualPayment {
       typeof order.paid_fee !== 'number' ||
       !Number.isSafeInteger(order.paid_fee) ||
       order.paid_fee < 0 ||
-      typeof order.refund_fee !== 'number' ||
-      !Number.isSafeInteger(order.refund_fee) ||
-      order.refund_fee < 0 ||
+      typeof refundFee !== 'number' ||
+      !Number.isSafeInteger(refundFee) ||
+      refundFee < 0 ||
       typeof order.paid_time !== 'number' ||
       !Number.isSafeInteger(order.paid_time) ||
       order.paid_time < 0 ||
@@ -371,7 +376,7 @@ export class WechatVirtualPayment {
       orderType: order.order_type as number,
       paidFee: order.paid_fee,
       paidTime: order.paid_time,
-      refundFee: order.refund_fee,
+      refundFee,
       status: order.status,
       wxOrderId: order.wx_order_id,
     };

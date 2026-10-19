@@ -141,6 +141,119 @@ describe('WechatVirtualPayment', () => {
     expect(request.signal).toBeInstanceOf(AbortSignal);
   });
 
+  it.each([0, 7])(
+    'accepts payment type %i without a refund_fee field',
+    async (orderType) => {
+      const client = new WechatVirtualPayment(config, {
+        fetch: jest.fn().mockResolvedValue(
+          new Response(
+            JSON.stringify({
+              errcode: 0,
+              order: {
+                env_type: 1,
+                order_id: 'MA1234567890ABCDEF',
+                order_type: orderType,
+                order_fee: 100,
+                paid_fee: 100,
+                paid_time: 1700000000,
+                left_fee: 100,
+                status: 3,
+                wx_order_id: 'wx-order-1',
+              },
+            }),
+          ),
+        ) as typeof fetch,
+        getAccessToken: jest.fn().mockResolvedValue('access-token'),
+      });
+
+      await expect(
+        client.queryOrder({
+          openId: 'openid-1',
+          orderId: 'MA1234567890ABCDEF',
+          totalAmount: 100,
+        }),
+      ).resolves.toMatchObject({
+        orderType,
+        status: 3,
+        paidFee: 100,
+        refundFee: 0,
+      });
+    },
+  );
+
+  it.each([null, -1, 0.5, '0'])(
+    'rejects an explicitly invalid payment refund_fee: %p',
+    async (refundFee) => {
+      const client = new WechatVirtualPayment(config, {
+        fetch: jest.fn().mockResolvedValue(
+          new Response(
+            JSON.stringify({
+              errcode: 0,
+              order: {
+                env_type: 1,
+                order_id: 'MA1234567890ABCDEF',
+                order_type: 0,
+                order_fee: 100,
+                paid_fee: 100,
+                paid_time: 1700000000,
+                left_fee: 100,
+                status: 3,
+                refund_fee: refundFee,
+              },
+            }),
+          ),
+        ) as typeof fetch,
+        getAccessToken: jest.fn().mockResolvedValue('access-token'),
+      });
+      await expect(
+        client.queryOrder({
+          openId: 'openid-1',
+          orderId: 'MA1234567890ABCDEF',
+          totalAmount: 100,
+        }),
+      ).rejects.toMatchObject({
+        code: WechatVirtualPaymentErrorCode.QUERY_ORDER_INVALID,
+      });
+    },
+  );
+
+  it.each([1, 8])(
+    'requires a positive valid refund_fee for refund type %i',
+    async (orderType) => {
+      for (const refundFee of [undefined, null, 0, -1, 0.5, '100', 101]) {
+        const client = new WechatVirtualPayment(config, {
+          fetch: jest.fn().mockResolvedValue(
+            new Response(
+              JSON.stringify({
+                errcode: 0,
+                order: {
+                  env_type: 1,
+                  order_id: 'REFUND12345678',
+                  order_type: orderType,
+                  order_fee: 0,
+                  paid_fee: 0,
+                  paid_time: 1700000000,
+                  status: 8,
+                  refund_fee: refundFee,
+                },
+              }),
+            ),
+          ) as typeof fetch,
+          getAccessToken: jest.fn().mockResolvedValue('access-token'),
+        });
+        await expect(
+          client.queryRefundOrder({
+            openId: 'openid-1',
+            orderId: 'REFUND12345678',
+            totalAmount: 100,
+          }),
+        ).rejects.toMatchObject({
+          code: WechatVirtualPaymentErrorCode.QUERY_ORDER_INVALID,
+        });
+      }
+    },
+  );
+
   it('verifies the official plaintext URL challenge signature', () => {
     const client = new WechatVirtualPayment(
       { ...config, messageToken: 'AAAAA' },
