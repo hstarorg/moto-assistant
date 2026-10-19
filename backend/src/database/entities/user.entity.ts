@@ -9,6 +9,7 @@ import {
 import { DATABASE_SCHEMA } from '../constants';
 import { AuthSessionEntity } from './auth-session.entity';
 import { MotoEntity } from './moto.entity';
+import { TipOrderEntity } from './tip-order.entity';
 
 @Entity({ name: 'users', schema: DATABASE_SCHEMA })
 export class UserEntity {
@@ -50,4 +51,7 @@ export class UserEntity {
 
   @OneToMany(() => AuthSessionEntity, 'user')
   authSessions?: AuthSessionEntity[];
+
+  @OneToMany(() => TipOrderEntity, 'user')
+  tipOrders?: TipOrderEntity[];
 }

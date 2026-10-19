@@ -1,4 +1,5 @@
 import type { MotoStatus } from '../constants';
+import type { TipOrderStatus } from '../constants';
 
 export interface AccountTokenResponse {
   token: string;
@@ -41,4 +42,25 @@ export interface MotoResponse {
   ownerId: number;
   status: MotoStatus;
   updatedAt: string;
+}
+
+export interface TipPaymentParameters {
+  mode: 'short_series_goods';
+  paySig: string;
+  signData: string;
+  signature: string;
+}
+
+export interface CreateTipOrderResponse {
+  amountYuan: number;
+  orderNo: string;
+  payment: TipPaymentParameters;
+}
+
+export interface TipOrderResponse {
+  amountYuan: number;
+  createdAt: string;
+  orderNo: string;
+  paidAt: string | null;
+  status: TipOrderStatus;
 }

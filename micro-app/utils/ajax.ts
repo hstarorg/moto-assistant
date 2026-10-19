@@ -13,8 +13,10 @@ type UnauthorizedHandler = () => Promise<void>;
 
 interface RequestOptions {
   auth?: boolean;
+  retryUnauthorized?: boolean;
   showError?: boolean;
   showLoading?: boolean;
+  timeout?: number;
 }
 
 class ApiError extends Error {
@@ -115,7 +117,12 @@ const execute = async <T>(
   if (result.statusCode >= 200 && result.statusCode < 300) {
     return result;
   }
-  if (result.statusCode === 401 && options.auth !== false && canRetry) {
+  if (
+    result.statusCode === 401 &&
+    options.auth !== false &&
+    options.retryUnauthorized !== false &&
+    canRetry
+  ) {
     await refreshAuthorization();
     return execute(send, options, false);
   }
@@ -177,11 +184,21 @@ const request = <T>(
           method,
           header: buildHeaders(options.auth !== false),
           dataType: 'json',
+          ...(options.timeout !== undefined
+            ? { timeout: options.timeout }
+            : {}),
           success(res) {
             resolve(res as unknown as RequestResult<T>);
           },
-          fail() {
-            reject(new ApiError('网络异常，请稍后重试'));
+          fail(result) {
+            const timedOut = /timeout/i.test(result.errMsg);
+            reject(
+              new ApiError(
+                timedOut ? '网络请求超时，请稍后重试' : '网络异常，请稍后重试',
+                undefined,
+                timedOut ? 'REQUEST_TIMEOUT' : 'NETWORK_ERROR'
+              )
+            );
           }
         });
       }),
@@ -190,6 +207,13 @@ const request = <T>(
 };
 
 const ajax = {
+  getErrorCode(error: unknown): string | undefined {
+    return error instanceof ApiError &&
+      error.code &&
+      /^[A-Z][A-Z0-9_]{1,63}$/u.test(error.code)
+      ? error.code
+      : undefined;
+  },
   isApiError(error: unknown, statusCode?: number, code?: string): boolean {
     return (
       error instanceof ApiError &&

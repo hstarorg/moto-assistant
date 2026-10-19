@@ -6,6 +6,7 @@
     "pages/moto-archived/moto-archived",
     "pages/mine/mine",
     "pages/about/about",
+    "pages/tip/tip",
     "pages/statistics/statistics"
   ],
   "lazyCodeLoading": "requiredComponents",

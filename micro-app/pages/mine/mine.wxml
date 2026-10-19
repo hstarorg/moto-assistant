@@ -34,6 +34,19 @@
         <button
           class="action-row"
           hover-class="action-row--pressed"
+          aria-label="支持开发者，自愿赞赏"
+          bindtap="navigateToTip"
+        >
+          <view class="action-content">
+            <text class="action-title">支持开发者</text>
+            <text class="action-desc">如果机车助理对你有帮助，可以自愿赞赏</text>
+          </view>
+          <view class="action-chevron" aria-hidden="true"></view>
+        </button>
+        <view class="action-divider"></view>
+        <button
+          class="action-row"
+          hover-class="action-row--pressed"
           aria-label="查看小程序隐私保护指引"
           bindtap="openPrivacyContract"
         >

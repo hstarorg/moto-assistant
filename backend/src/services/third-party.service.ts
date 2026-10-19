@@ -2,6 +2,7 @@ import {
   BadGatewayException,
   ForbiddenException,
   Injectable,
+  Logger,
   type OnApplicationShutdown,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -15,7 +16,22 @@ import { randomUUID } from 'node:crypto';
 import { extname } from 'node:path';
 
 interface WechatSessionResponse {
+  errcode?: number;
+  errmsg?: string;
   openid?: string;
+  session_key?: string;
+}
+
+interface WechatAccessTokenResponse {
+  access_token?: string;
+  errcode?: number;
+  errmsg?: string;
+  expires_in?: number;
+}
+
+export interface WechatSession {
+  openId: string;
+  sessionKey: string;
 }
 
 interface WechatConfig {
@@ -33,6 +49,9 @@ interface R2Config {
 
 @Injectable()
 export class ThirdPartyService implements OnApplicationShutdown {
+  private readonly logger = new Logger(ThirdPartyService.name);
+  private accessToken?: { expiresAt: number; value: string };
+  private accessTokenRequest?: Promise<string>;
   private readonly r2: R2Config;
   private readonly r2Client: S3Client;
   private readonly wechat: WechatConfig;
@@ -57,11 +76,36 @@ export class ThirdPartyService implements OnApplicationShutdown {
   }
 
   async getWechatOpenId(code: string): Promise<string> {
-    return this.getWechatOpenIdFromCode(
+    return (await this.getWechatSession(code)).openId;
+  }
+
+  async getWechatSession(code: string): Promise<WechatSession> {
+    return this.getWechatSessionFromCode(
       code,
       this.wechat.appId,
       this.wechat.appSecret,
     );
+  }
+
+  async getWechatAccessToken(rejectedToken?: string): Promise<string> {
+    if (
+      rejectedToken !== undefined &&
+      this.accessToken?.value === rejectedToken
+    ) {
+      this.accessToken = undefined;
+    }
+    if (
+      this.accessToken &&
+      this.accessToken.expiresAt > Date.now() + 60 * 1000
+    ) {
+      return this.accessToken.value;
+    }
+    if (!this.accessTokenRequest) {
+      this.accessTokenRequest = this.requestWechatAccessToken().finally(() => {
+        this.accessTokenRequest = undefined;
+      });
+    }
+    return this.accessTokenRequest;
   }
 
   async uploadImage(file: Express.Multer.File): Promise<string> {
@@ -94,11 +138,11 @@ export class ThirdPartyService implements OnApplicationShutdown {
     return key;
   }
 
-  private async getWechatOpenIdFromCode(
+  private async getWechatSessionFromCode(
     code: string,
     appId: string,
     appSecret: string,
-  ): Promise<string> {
+  ): Promise<WechatSession> {
     const url = new URL('https://api.weixin.qq.com/sns/jscode2session');
     url.search = new URLSearchParams({
       appid: appId,
@@ -107,22 +151,107 @@ export class ThirdPartyService implements OnApplicationShutdown {
       grant_type: 'authorization_code',
     }).toString();
 
-    let response: Response;
+    const session = await this.requestWechatJson<WechatSessionResponse>(
+      url,
+      '微信登录服务暂时不可用',
+    );
+    if (
+      typeof session.openid !== 'string' ||
+      !session.openid ||
+      typeof session.session_key !== 'string' ||
+      !session.session_key
+    ) {
+      this.logWechatFailure(
+        '/sns/jscode2session',
+        'WECHAT_LOGIN_INVALID',
+        session.errcode,
+      );
+      throw new ForbiddenException({
+        code: 'WECHAT_LOGIN_INVALID',
+        message: '微信登录凭证无效',
+      });
+    }
+    return { openId: session.openid, sessionKey: session.session_key };
+  }
+
+  private async requestWechatAccessToken(): Promise<string> {
+    const url = new URL('https://api.weixin.qq.com/cgi-bin/token');
+    url.search = new URLSearchParams({
+      appid: this.wechat.appId,
+      grant_type: 'client_credential',
+      secret: this.wechat.appSecret,
+    }).toString();
+
+    const result = await this.requestWechatJson<WechatAccessTokenResponse>(
+      url,
+      '微信服务暂时不可用',
+    );
+    if (
+      typeof result.access_token !== 'string' ||
+      !result.access_token ||
+      !Number.isSafeInteger(result.expires_in) ||
+      (result.expires_in ?? 0) <= 0
+    ) {
+      this.logWechatFailure(
+        '/cgi-bin/token',
+        'WECHAT_ACCESS_TOKEN_FAILED',
+        result.errcode,
+      );
+      throw new BadGatewayException({
+        code: 'WECHAT_ACCESS_TOKEN_FAILED',
+        message: '微信服务暂时不可用',
+      });
+    }
+    this.accessToken = {
+      expiresAt: Date.now() + (result.expires_in ?? 0) * 1000,
+      value: result.access_token,
+    };
+    return result.access_token;
+  }
+
+  private async requestWechatJson<T>(url: URL, message: string): Promise<T> {
+    const signal = AbortSignal.timeout(5000);
     try {
-      response = await fetch(url);
+      const response = await fetch(url, { signal });
+      if (!response.ok) {
+        throw new Error();
+      }
+      const result: unknown = await response.json();
+      if (
+        typeof result !== 'object' ||
+        result === null ||
+        Array.isArray(result)
+      ) {
+        throw new Error();
+      }
+      return result as T;
     } catch {
-      throw new BadGatewayException('微信登录服务暂时不可用');
+      const code = signal.aborted
+        ? 'WECHAT_REQUEST_TIMEOUT'
+        : 'WECHAT_REQUEST_FAILED';
+      this.logWechatFailure(url.pathname, code);
+      throw new BadGatewayException({
+        code,
+        message,
+      });
     }
+  }
 
-    if (!response.ok) {
-      throw new BadGatewayException('微信登录服务暂时不可用');
-    }
-
-    const session = (await response.json()) as WechatSessionResponse;
-    if (!session.openid) {
-      throw new ForbiddenException('微信登录凭证无效');
-    }
-    return session.openid;
+  private logWechatFailure(
+    operation: string,
+    code: string,
+    upstreamCode?: number,
+  ): void {
+    this.logger.warn(
+      JSON.stringify({
+        event: 'wechat_request_failure',
+        operation,
+        code,
+        upstreamCode: Number.isSafeInteger(upstreamCode)
+          ? upstreamCode
+          : undefined,
+      }),
+    );
   }
 
   private createImageKey(originalName: string, prefix: string): string {
