@@ -53,7 +53,7 @@ interface RemoteOrder {
   status: number;
   paid_fee: number;
   paid_time: number;
-  refund_fee: number;
+  refund_fee?: number;
   left_fee: number;
   wx_order_id: string;
 }
@@ -126,7 +126,6 @@ describe('Virtual payment HTTP flow (real PostgreSQL)', () => {
       status: 1,
       paid_fee: 0,
       paid_time: 0,
-      refund_fee: 0,
       left_fee: 0,
       wx_order_id: `wx-${order.orderNo}`,
     });

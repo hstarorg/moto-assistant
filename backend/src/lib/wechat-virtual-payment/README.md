@@ -94,6 +94,8 @@ GET 验证请求使用 `signature`：对 Token、timestamp、nonce 排序拼接�
 
 返回值包含 `orderType`（0：普通支付，7：Apple 支付）和 `leftFee`（原支付单剩余可退金额）。
 该接口只接受支付单，退款单应使用 `queryRefundOrder`，避免将退款流水写入支付流水字段。
+微信支付单未返回 `refund_fee` 时，SDK 将 `refundFee` 归一为 0；显式返回的非法值仍会拒绝。
+退款单不适用此缺省规则，必须返回有效的正整数退款金额，且不能超过原支付金额。
 
 ### `queryRefundOrder(input)`
 
