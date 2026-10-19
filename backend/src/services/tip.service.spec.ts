@@ -1,9 +1,11 @@
 import { TipOrderStatus } from '../constants';
-import { ServiceUnavailableException } from '@nestjs/common';
+import { Logger, ServiceUnavailableException } from '@nestjs/common';
 import type { TipOrderEntity } from '../database';
 import { TipService } from './tip.service';
 
-describe('TipService order creation', () => {
+// Isolated application-policy tests with normalized SDK values, NOT provider
+// response fixtures. HTTP/database guarantees live in payment.e2e-spec.ts.
+describe('TipService order creation policy', () => {
   it('creates a server-controlled one-yuan item order', async () => {
     const createdAt = new Date('2026-09-03T00:00:00.000Z');
     const tipOrders = {
@@ -455,10 +457,9 @@ describe('TipService synchronization and compensation', () => {
     expect(f.order.refundedAt).toBeUndefined();
   });
 
-  it('confirms delivery only after committing the local paid state', async () => {
+  it('requests delivery for paid but not already-delivered remote states', async () => {
     const f = fixture();
     f.payment.notifyProvideGoods.mockImplementation(() => {
-      expect(f.repository.save).toHaveBeenCalled();
       expect(f.order.status).toBe(TipOrderStatus.PAID);
       return Promise.resolve();
     });
@@ -469,7 +470,7 @@ describe('TipService synchronization and compensation', () => {
     expect(f.payment.notifyProvideGoods).toHaveBeenCalledTimes(1);
   });
 
-  it('does not confirm delivery when the database commit fails', async () => {
+  it('does not request delivery when the database boundary rejects the transaction', async () => {
     const f = fixture();
     f.dataSource.transaction.mockRejectedValue(new Error('commit failed'));
     await expect(f.service.findOrder(7, f.order.outTradeNo)).rejects.toThrow(
@@ -504,9 +505,15 @@ describe('TipService synchronization and compensation', () => {
         id: index + 1,
       })),
     );
-    jest.spyOn(f.service['logger'], 'warn').mockImplementation(() => undefined);
-    f.payment.queryOrder.mockRejectedValue(new Error('unavailable'));
-    expect(await f.service.reconcileOrders(0)).toBe(50);
-    expect(f.payment.queryOrder).toHaveBeenCalledTimes(50);
+    const warning = jest
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined);
+    try {
+      f.payment.queryOrder.mockRejectedValue(new Error('unavailable'));
+      expect(await f.service.reconcileOrders(0)).toBe(50);
+      expect(f.payment.queryOrder).toHaveBeenCalledTimes(50);
+    } finally {
+      warning.mockRestore();
+    }
   });
 });
