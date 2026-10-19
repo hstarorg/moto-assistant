@@ -90,7 +90,7 @@ signature = hmac.new(session_key.encode(), raw_body.encode(), hashlib.sha256).he
 
 ```sh
 # backend，E2E URL 必须指向专用可丢弃测试库
-pnpm exec jest --runInBand
+pnpm test --runInBand
 pnpm exec eslint "{src,apps,libs,test}/**/*.ts"
 pnpm build
 E2E_DATABASE_URL='<专用测试库 URL>' pnpm test:e2e payment.e2e-spec.ts
