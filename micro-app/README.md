@@ -8,8 +8,7 @@
 pnpm install
 ```
 
-使用微信开发者工具导入本目录，确认 AppID，并在 `config.ts` 中配置 API 地址。
-`develop` 使用开发 API，`trial` 和 `release` 使用正式 HTTPS API。
+使用微信开发者工具导入本目录，确认 AppID。所有版本统一使用 `config.ts` 中的生产 API 地址，开发调试也会访问生产数据。
 
 个人联调设置放在已忽略的 `project.private.config.json`，不要关闭共享配置的域名校验。
 

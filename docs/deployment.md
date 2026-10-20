@@ -59,7 +59,7 @@ curl --fail http://127.0.0.1:7410/api/v1/health
 
 1. 在 `micro-app` 执行 `pnpm install`、`pnpm typecheck` 和 `pnpm test`。
 2. 用微信开发者工具导入 `micro-app`，确认 AppID 与后端配置一致。
-3. 修改 `micro-app/config.ts` 的 `trial` / `release` API 地址，使用外部 HTTPS API 基址。
+3. 确认 `micro-app/config.ts` 中的生产 HTTPS API 基址；开发版、体验版和正式版统一使用该地址。
 4. 在小程序后台配置 request 和 uploadFile 合法域名，只填写 API 的 origin，不含路径；保持域名校验开启。
 5. 上传体验版，真机检查登录、车辆、加油记录和图片；启用赞赏时另验 Android / iOS 支付、取消、金额上限及退款。
 6. 确认隐私指引和审核说明后，提交审核并发布。
